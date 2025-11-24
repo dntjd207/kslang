@@ -1,0 +1,123 @@
+# Laravel 기본
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
+
+# IDE 관련
+/.idea
+/.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Composer
+composer.phar
+composer.lock
+
+# NPM/Yarn
+package-lock.json
+yarn.lock
+
+# 빌드 파일
+/public/build
+/public/css
+/public/js
+/public/mix-manifest.json
+
+# 로그 파일
+*.log
+/storage/logs/*.log
+
+# 캐시 및 세션
+/bootstrap/cache/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+
+# 테스트 커버리지
+/coverage
+/.phpunit.cache
+
+# 데이터베이스
+*.sqlite
+*.sqlite-journal
+database.sqlite
+
+# 업로드 파일
+/public/uploads
+
+# 백업 파일
+*.backup
+*.bak
+*.tmp
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
+
+# PHPStorm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# NetBeans
+nbproject/
+
+# Eclipse
+.buildpath
+.project
+.settings/
+
+# Laravel Mix
+/public/hot
+/public/storage
+/storage/*.key
+
+# Webpack
+webpack-stats.json
+
+# Telescope (Laravel Telescope 사용 시)
+/storage/telescope
+
+# Debugbar (Laravel Debugbar 사용 시)
+/.phpstorm.meta.php
+/_ide_helper.php
+/_ide_helper_models.php
+
+# Pest (Pest PHP 사용 시)
+.pest/
+
+# Ignition (Spatie Ignition 사용 시)
+/storage/ignition/
