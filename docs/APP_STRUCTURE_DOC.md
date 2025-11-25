@@ -6,87 +6,110 @@
 *   **앱 이름:** kslang
 *   **플랫폼:** Android (Native)
 *   **개발 언어:** Kotlin
-*   **UI 프레임워크:** Jetpack Compose (현대적인 UI 구축을 위함)
-*   **데이터 저장소:** 로컬 중심 (Room Database + Pre-populated SQLite)
+*   **UI 프레임워크:** Jetpack Compose (Material 3)
+*   **데이터 저장소:** Room Database (로컬 캐시), DataStore (설정)
+*   **네트워크:** Retrofit2 (데이터 동기화), ExoPlayer (오디오 스트리밍)
 *   **로그인:** 없음 (No Auth)
 
+### 디자인 시스템 (Design System)
+*   **Primary Color:** `#6B5FFF` (Soft Violet/Blue)
+*   **Secondary Color:** `#FF6B6B` (Soft Red/Coral)
+*   **Theme:** Modern Gradient Style, 깔끔한 Card UI (Light/Dark 지원)
+
 ### 아키텍처 (Architecture)
-*   **MVVM (Model-View-ViewModel):** UI와 비즈니스 로직 분리.
-*   **Repository Pattern:** 데이터 소스(로컬 DB vs 원격 서버) 추상화.
-*   **Offline First:** 앱 설치 시 기본 데이터베이스(Slang.db)를 내장하여 배포. 인터넷 연결 없이도 기본 기능 100% 동작.
+*   **MVVM + Repository:** UI, 비즈니스 로직, 데이터 계층 분리.
+*   **Sync on Start:** 앱 실행 시 서버와 통신하여 최신 데이터를 로컬 DB에 동기화.
+*   **On-demand Audio:** 오디오 파일은 미리 받지 않고 재생 시 실시간 다운로드/스트리밍.
 
 ---
 
 ## 2. 데이터 구조 (Data Structure)
 
-서버 없이 동작하기 위해 로컬 DB 테이블 설계를 명확히 합니다.
+### Table: `SlangWord` (단어 데이터)
+*   서버로부터 받아와 로컬 `Room`에 저장하는 메인 데이터.
 
-### Table: `SlangWord` (비속어/은어 데이터)
 | 필드명 | 타입 | 설명 |
 | :--- | :--- | :--- |
 | `id` | Integer (PK) | 고유 식별자 |
-| `word_korean` | String | 한국어 표기 (예: 대박) |
-| `word_english` | String | 영어 발음 표기/로마자 (예: Daebak) |
-| `pronunciation_ipa` | String | 발음 기호 (선택 사항) |
-| `level` | Integer | 1(Mild) ~ 4(Taboo) 단계 |
-| `meaning` | String | 영어 뜻 설명 |
-| `etymology` | String | 어원 및 유래 (문화적 설명) |
-| `example_sentence_kr` | String | 한국어 예문 |
-| `example_sentence_en` | String | 영어 예문 번역 |
-| `audio_file_name` | String | 로컬 raw 리소스 파일명 (예: `slang_001.mp3`) |
-| `tags` | String | 검색용 태그 (예: "shock", "happy") |
+| `word_korean` | String | 한국어 표기 (예: 헐) |
+| `word_english` | String | 영어 발음/로마자 (예: Hul) |
+| `level` | Integer | 1(Very Mild) ~ 5(Extreme) |
+| `meaning` | String | 영어 뜻 |
+| `etymology` | String | 어원 및 유래 |
+| `example_kr` | String | 한국어 예문 |
+| `example_en` | String | 영어 예문 |
+| `audio_url` | String | 오디오 파일 다운로드/스트리밍 URL |
+| `version` | Integer | 데이터 버전 관리용 |
+| `is_bookmarked` | Boolean | 북마크 여부 (로컬 전용 필드, 서버 동기화 X) |
+| `tags` | String | 검색용 태그 |
+
+*(UserStats 테이블 삭제됨 - 통계 기능 제외)*
 
 ---
 
 ## 3. 주요 기능 및 화면 구성 (Screen Flow)
 
-### A. 스플래시 & 온보딩 (Splash & Onboarding)
-*   **Splash:** kslang 로고 애니메이션.
-*   **Onboarding:** 앱의 컨셉(4단계 레벨 시스템)을 간단히 설명하는 슬라이드. "No login required" 강조.
+앱은 **Bottom Navigation Bar**를 통해 4개의 주요 탭으로 구성됩니다.
+**(Home, Slang List, Levels, Quiz)**
 
-### B. 메인 화면 (Home / Level Select)
-*   **구성:** 4개의 큰 카드 또는 버튼으로 구성된 대시보드.
-*   **UI:**
-    *   **Level 1:** 배경색 - 부드러운 톤, 아이콘 - 🍦 (Mild)
-    *   **Level 2:** 배경색 - 중간 톤, 아이콘 - 🌶️ (Spicy)
-    *   **Level 3:** 배경색 - 강한 톤, 아이콘 - 🔥 (Hot)
-    *   **Level 4:** 배경색 - 경고색, 아이콘 - ☠️ (Danger)
-*   **동작:** 레벨 카드를 터치하면 해당 레벨의 단어 리스트 화면으로 이동.
+### A. 홈 (Home)
+*   **App Bar:** 로고.
+*   **Hero Section:**
+    *   "Learn Korean Slang Easily" 문구.
+    *   **Start Learning** 버튼 -> Levels 탭으로 이동.
+*   **Quick Links:**
+    *   📂 **Browse Slang:** 전체 단어장(Slang List)으로 이동.
+    *   💡 **Quiz Zone:** 퀴즈 탭으로 이동 (현재 준비 중 알림).
 
-### C. 단어 리스트 화면 (Word List)
-*   선택한 레벨에 해당하는 단어들을 리스트(LazyColumn)로 표시.
-*   **아이템 구성:** 한국어 단어 + 영어 발음 표기.
-*   **필터/정렬:** 가나다순, 인기순(추후 기능).
+### B. 단어장 (Slang Dictionary / List)
+*   **기능:** 로컬 DB에 저장된 전체 단어를 검색/필터링.
+*   **UI 구성:**
+    *   **Search Bar:** 검색.
+    *   **Filter Chips:** Level, Alphabet, Popularity.
+    *   **Word List:** 단어, 뜻, **재생 버튼**.
+    *   **재생 동작:** 버튼 클릭 시 `audio_url`에서 오디오 스트리밍 재생.
 
-### D. 단어 상세 화면 (Detail View) - 학습의 핵심
-*   **상단:** 크고 명확한 한국어 텍스트.
-*   **오디오:** 🔊 버튼을 눌러 원어민 발음 재생 (Android MediaPlayer API 활용).
-*   **발음 가이드:** 로마자 표기 및 발음 팁.
-*   **뜻 (Meaning):** 직역(Literal)과 의역(Figurative)을 구분하여 설명.
-*   **어원 (Origin):** 텍스트 박스로 유래 설명.
-*   **예시 (Context):** 대화 형식의 예문 표시 (A: ..., B: ...).
-
----
-
-## 4. 서버 및 콘텐츠 업데이트 전략 (Hybrid Approach)
-
-사용자가 "서버가 필요할 것 같다"고 언급했으므로, **로그인 없는 콘텐츠 업데이트 서버**를 구성합니다.
-
-### 1단계: 로컬 내장 (Initial Release)
-*   앱 빌드 시 `assets/databases/slang.db`를 포함하여 배포.
-*   장점: 서버 비용 0원, 즉시 실행 가능.
-
-### 2단계: 원격 업데이트 (Content Update)
-*   **목적:** 앱 업데이트(심사) 없이 새로운 욕/은어를 추가하기 위함.
+### C. 레벨 (Slang Levels)
+*   **기능:** 난이도별 학습 진입점 (1~5단계).
 *   **구성:**
-    *   간단한 정적 호스팅 (AWS S3, Firebase Hosting, 또는 GitHub Pages)에 `version.json`과 `data_update.json` 업로드.
-    *   앱 실행 시 `version.json`을 체크하여 로컬 DB 버전보다 높으면 `data_update.json`을 다운로드하여 로컬 Room DB에 `INSERT`.
-*   **오디오 파일:** 용량이 작다면 JSON 내 Base64로 포함하거나, 필요시 다운로드(캐싱).
+    *   **Level 1 (Very mild)**
+    *   **Level 2 (Medium)**
+    *   **Level 3 (Light/Intermediate)**
+    *   **Level 4 (Strong)**
+    *   **Level 5 (Extreme)**
+
+### D. 퀴즈 존 (Quiz Zone) - *Update Pending*
+*   **상태:** 메뉴는 존재하지만, 진입 시 또는 화면 내에 **"Coming Soon" (업데이트 예정)** 안내 표시.
+*   **기능 (추후 구현):**
+    *   객관식 퀴즈 (뜻 맞추기).
+    *   현재 버전에서는 구현하지 않음.
+
+### E. 단어 상세 (Word Details)
+*   **UI:** Bottom Sheet 또는 별도 페이지.
+*   **내용:**
+    *   큰 한글 텍스트.
+    *   **Audio:** 재생 버튼 (URL 스트리밍).
+    *   **Translation & Examples:** 뜻과 예문 상세 표시.
+    *   **Etymology:** 어원 설명.
+
+*(Profile 탭 및 기능 삭제됨)*
 
 ---
 
-## 5. 디자인 및 UI 가이드라인 (Android)
-*   **Theme:** 다크 모드(Dark Mode)를 기본으로 설정 (눈의 피로도 감소 및 "Underground" 느낌).
-*   **Navigation:** Jetpack Compose Navigation 활용.
-*   **Typography:** 한글 폰트 파일(`.ttf`)을 `res/font`에 포함하여 커스텀 폰트 적용.
+## 4. 서버 및 업데이트 전략 (Modified)
 
+### 데이터 동기화 (Data Sync)
+1.  **앱 실행 시 (Splash/Loading):**
+    *   서버의 `version.json`을 호출하여 현재 로컬 데이터 버전과 비교.
+    *   **업데이트 필요 시:** 서버에서 전체 단어 데이터(JSON)를 받아와 로컬 Room DB를 갱신 (`Upsert` 또는 `Delete All & Insert`).
+    *   **최신 상태:** 동기화 스킵하고 메인 화면 진입.
+    *   **네트워크 오류 시:** 기존 로컬 데이터로 앱 실행 (Offline 모드 지원).
+
+### 오디오 처리 (Audio Handling)
+*   **전략:** 앱 용량을 줄이기 위해 오디오 파일은 앱 패키지에 포함하지 않음 (On-demand Download).
+*   **동작:**
+    1.  사용자가 재생 버튼(🔊) 클릭.
+    2.  로컬 저장소(Cache Directory)에 해당 파일이 있는지 확인.
+    3.  **파일 있음:** 로컬 파일 즉시 재생.
+    4.  **파일 없음:** 서버 `audio_url`에서 다운로드 -> 로컬 저장 -> 재생.
+*   **장점:** 데이터 사용량 절약 및 두 번째 재생부터 끊김 없는 경험 제공.
