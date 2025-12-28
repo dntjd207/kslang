@@ -30,6 +30,8 @@ Route::get('/home', 'HomeController@index')->name('home');
 Route::group(['middleware' => ['auth'], 'prefix' => 'admin', 'as' => 'admin.'], function () {
     Route::get('/', 'Admin\DashboardController@index')->name('dashboard');
     Route::resource('words', 'Admin\WordController');
+    Route::post('words/{word}/reorder-examples', 'Admin\WordController@reorderExamples')->name('words.reorder-examples');
     Route::get('config', 'Admin\ConfigController@index')->name('config.index');
     Route::post('config', 'Admin\ConfigController@update')->name('config.update');
+    Route::get('api-docs', 'Admin\ApiDocController@index')->name('api-docs.index');
 });

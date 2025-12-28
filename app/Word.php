@@ -12,8 +12,6 @@ class Word extends Model
         'level',
         'meaning',
         'etymology',
-        'example_kr',
-        'example_en',
         'audio_filename',
         'tags',
     ];
@@ -21,5 +19,9 @@ class Word extends Model
     protected $casts = [
         'level' => 'integer',
     ];
-}
 
+    public function examples()
+    {
+        return $this->hasMany(WordExample::class)->orderBy('sort_order');
+    }
+}

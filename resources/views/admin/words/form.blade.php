@@ -90,22 +90,52 @@
                         </div>
                     </div>
 
-                    <!-- Korean Example -->
+                    <!-- Examples Section -->
                     <div class="sm:col-span-6">
-                        <label for="example_kr" class="block text-sm font-medium text-gray-700">한국어 예문</label>
-                        <div class="mt-1">
-                            <input type="text" name="example_kr" id="example_kr" value="{{ old('example_kr', $word->example_kr ?? '') }}"
-                                class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="block text-sm font-medium text-gray-700">예문</label>
+                            <button type="button" id="add-example-btn"
+                                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                예문 추가
+                            </button>
                         </div>
-                    </div>
-
-                    <!-- English Example -->
-                    <div class="sm:col-span-6">
-                        <label for="example_en" class="block text-sm font-medium text-gray-700">영어 예문</label>
-                        <div class="mt-1">
-                            <input type="text" name="example_en" id="example_en" value="{{ old('example_en', $word->example_en ?? '') }}"
-                                class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
+                        
+                        <div id="examples-container" class="space-y-3">
+                            @if(isset($word) && $word->examples->count() > 0)
+                                @foreach($word->examples as $index => $example)
+                                    <div class="example-item bg-gray-50 p-4 rounded-lg border border-gray-200 relative" data-id="{{ $example->id }}">
+                                        <div class="absolute left-2 top-1/2 -translate-y-1/2 cursor-move drag-handle">
+                                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="ml-6">
+                                            <input type="hidden" name="examples[{{ $index }}][id]" value="{{ $example->id }}">
+                                            <div class="mb-2">
+                                                <input type="text" name="examples[{{ $index }}][example_kr]" value="{{ $example->example_kr }}" 
+                                                    placeholder="한국어 예문 *" required
+                                                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
+                                            </div>
+                                            <div>
+                                                <input type="text" name="examples[{{ $index }}][example_en]" value="{{ $example->example_en }}" 
+                                                    placeholder="영어 번역 (선택사항)"
+                                                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
+                                            </div>
+                                        </div>
+                                        <button type="button" class="remove-example-btn absolute right-2 top-2 text-red-500 hover:text-red-700">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                @endforeach
+                            @endif
                         </div>
+                        
+                        <p class="mt-2 text-xs text-gray-500">드래그하여 예문 순서를 변경할 수 있습니다.</p>
                     </div>
 
                     <!-- Tags -->
@@ -162,4 +192,84 @@
         </div>
     </div>
 </div>
+
+<!-- Example Template -->
+<template id="example-template">
+    <div class="example-item bg-gray-50 p-4 rounded-lg border border-gray-200 relative" data-id="">
+        <div class="absolute left-2 top-1/2 -translate-y-1/2 cursor-move drag-handle">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+            </svg>
+        </div>
+        <div class="ml-6">
+            <div class="mb-2">
+                <input type="text" name="examples[INDEX][example_kr]" value="" 
+                    placeholder="한국어 예문 *" required
+                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
+            </div>
+            <div>
+                <input type="text" name="examples[INDEX][example_en]" value="" 
+                    placeholder="영어 번역 (선택사항)"
+                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
+            </div>
+        </div>
+        <button type="button" class="remove-example-btn absolute right-2 top-2 text-red-500 hover:text-red-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+</template>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('examples-container');
+    const addBtn = document.getElementById('add-example-btn');
+    const template = document.getElementById('example-template');
+    
+    // Initialize Sortable for drag and drop
+    new Sortable(container, {
+        handle: '.drag-handle',
+        animation: 150,
+        ghostClass: 'bg-blue-100',
+        onEnd: function() {
+            reindexExamples();
+        }
+    });
+    
+    // Add new example
+    addBtn.addEventListener('click', function() {
+        const index = container.querySelectorAll('.example-item').length;
+        const clone = template.content.cloneNode(true);
+        const item = clone.querySelector('.example-item');
+        
+        // Update input names with correct index
+        item.querySelectorAll('input').forEach(input => {
+            input.name = input.name.replace('INDEX', index);
+        });
+        
+        container.appendChild(clone);
+        reindexExamples();
+    });
+    
+    // Remove example
+    container.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-example-btn')) {
+            e.target.closest('.example-item').remove();
+            reindexExamples();
+        }
+    });
+    
+    // Reindex all examples after add/remove/reorder
+    function reindexExamples() {
+        const items = container.querySelectorAll('.example-item');
+        items.forEach((item, index) => {
+            item.querySelectorAll('input').forEach(input => {
+                input.name = input.name.replace(/examples\[\d+\]/, `examples[${index}]`);
+            });
+        });
+    }
+});
+</script>
 @endsection

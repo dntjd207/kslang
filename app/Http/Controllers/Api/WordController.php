@@ -10,7 +10,9 @@ class WordController extends Controller
 {
     public function index()
     {
-        $words = Word::all();
+        $words = Word::with(['examples' => function($query) {
+            $query->orderBy('sort_order');
+        }])->get();
 
         return response()->json([
             'count' => $words->count(),
@@ -18,4 +20,3 @@ class WordController extends Controller
         ]);
     }
 }
-
