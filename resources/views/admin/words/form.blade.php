@@ -221,55 +221,77 @@
     </div>
 </template>
 
+@endsection
+
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('examples-container');
-    const addBtn = document.getElementById('add-example-btn');
-    const template = document.getElementById('example-template');
-    
-    // Initialize Sortable for drag and drop
-    new Sortable(container, {
-        handle: '.drag-handle',
-        animation: 150,
-        ghostClass: 'bg-blue-100',
-        onEnd: function() {
-            reindexExamples();
-        }
-    });
-    
-    // Add new example
-    addBtn.addEventListener('click', function() {
-        const index = container.querySelectorAll('.example-item').length;
-        const clone = template.content.cloneNode(true);
-        const item = clone.querySelector('.example-item');
+(function() {
+    function initExamples() {
+        const container = document.getElementById('examples-container');
+        const addBtn = document.getElementById('add-example-btn');
+        const template = document.getElementById('example-template');
         
-        // Update input names with correct index
-        item.querySelectorAll('input').forEach(input => {
-            input.name = input.name.replace('INDEX', index);
-        });
-        
-        container.appendChild(clone);
-        reindexExamples();
-    });
-    
-    // Remove example
-    container.addEventListener('click', function(e) {
-        if (e.target.closest('.remove-example-btn')) {
-            e.target.closest('.example-item').remove();
-            reindexExamples();
+        if (!container || !addBtn || !template) {
+            console.error('Required elements not found');
+            return;
         }
-    });
-    
-    // Reindex all examples after add/remove/reorder
-    function reindexExamples() {
-        const items = container.querySelectorAll('.example-item');
-        items.forEach((item, index) => {
-            item.querySelectorAll('input').forEach(input => {
-                input.name = input.name.replace(/examples\[\d+\]/, `examples[${index}]`);
+        
+        // Initialize Sortable for drag and drop (if available)
+        if (typeof Sortable !== 'undefined') {
+            new Sortable(container, {
+                handle: '.drag-handle',
+                animation: 150,
+                ghostClass: 'bg-blue-100',
+                onEnd: function() {
+                    reindexExamples();
+                }
             });
+        } else {
+            console.warn('SortableJS not loaded, drag and drop disabled');
+        }
+        
+        // Add new example
+        addBtn.addEventListener('click', function() {
+            const index = container.querySelectorAll('.example-item').length;
+            const clone = template.content.cloneNode(true);
+            const item = clone.querySelector('.example-item');
+            
+            // Update input names with correct index
+            item.querySelectorAll('input').forEach(function(input) {
+                input.name = input.name.replace('INDEX', index);
+            });
+            
+            container.appendChild(clone);
+            reindexExamples();
         });
+        
+        // Remove example
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-example-btn')) {
+                e.target.closest('.example-item').remove();
+                reindexExamples();
+            }
+        });
+        
+        // Reindex all examples after add/remove/reorder
+        function reindexExamples() {
+            const items = container.querySelectorAll('.example-item');
+            items.forEach(function(item, index) {
+                item.querySelectorAll('input').forEach(function(input) {
+                    input.name = input.name.replace(/examples\[\d+\]/, 'examples[' + index + ']');
+                });
+            });
+        }
     }
-});
+    
+    // Run initialization
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initExamples);
+    } else {
+        // DOM already loaded, run immediately
+        initExamples();
+    }
+})();
 </script>
-@endsection
+@endpush
