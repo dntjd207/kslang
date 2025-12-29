@@ -192,48 +192,48 @@
         </div>
     </div>
 </div>
-
-<!-- Example Template -->
-<template id="example-template">
-    <div class="example-item bg-gray-50 p-4 rounded-lg border border-gray-200 relative" data-id="">
-        <div class="absolute left-2 top-1/2 -translate-y-1/2 cursor-move drag-handle">
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
-            </svg>
-        </div>
-        <div class="ml-6">
-            <div class="mb-2">
-                <input type="text" name="examples[INDEX][example_kr]" value="" 
-                    placeholder="한국어 예문 *" required
-                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
-            </div>
-            <div>
-                <input type="text" name="examples[INDEX][example_en]" value="" 
-                    placeholder="영어 번역 (선택사항)"
-                    class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
-            </div>
-        </div>
-        <button type="button" class="remove-example-btn absolute right-2 top-2 text-red-500 hover:text-red-700">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
-    </div>
-</template>
-
 @endsection
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 (function() {
+    function createExampleItem(index) {
+        var div = document.createElement('div');
+        div.className = 'example-item bg-gray-50 p-4 rounded-lg border border-gray-200 relative';
+        div.setAttribute('data-id', '');
+        div.innerHTML = 
+            '<div class="absolute left-2 top-1/2 -translate-y-1/2 cursor-move drag-handle">' +
+                '<svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>' +
+                '</svg>' +
+            '</div>' +
+            '<div class="ml-6">' +
+                '<div class="mb-2">' +
+                    '<input type="text" name="examples[' + index + '][example_kr]" value="" ' +
+                        'placeholder="한국어 예문 *" required ' +
+                        'class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">' +
+                '</div>' +
+                '<div>' +
+                    '<input type="text" name="examples[' + index + '][example_en]" value="" ' +
+                        'placeholder="영어 번역 (선택사항)" ' +
+                        'class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">' +
+                '</div>' +
+            '</div>' +
+            '<button type="button" class="remove-example-btn absolute right-2 top-2 text-red-500 hover:text-red-700">' +
+                '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>' +
+                '</svg>' +
+            '</button>';
+        return div;
+    }
+
     function initExamples() {
-        const container = document.getElementById('examples-container');
-        const addBtn = document.getElementById('add-example-btn');
-        const template = document.getElementById('example-template');
+        var container = document.getElementById('examples-container');
+        var addBtn = document.getElementById('add-example-btn');
         
-        if (!container || !addBtn || !template) {
-            console.error('Required elements not found');
+        if (!container || !addBtn) {
+            console.error('Required elements not found: container=' + !!container + ', addBtn=' + !!addBtn);
             return;
         }
         
@@ -247,41 +247,36 @@
                     reindexExamples();
                 }
             });
-        } else {
-            console.warn('SortableJS not loaded, drag and drop disabled');
         }
         
         // Add new example
         addBtn.addEventListener('click', function() {
-            const index = container.querySelectorAll('.example-item').length;
-            const clone = template.content.cloneNode(true);
-            const item = clone.querySelector('.example-item');
-            
-            // Update input names with correct index
-            item.querySelectorAll('input').forEach(function(input) {
-                input.name = input.name.replace('INDEX', index);
-            });
-            
-            container.appendChild(clone);
-            reindexExamples();
+            var index = container.querySelectorAll('.example-item').length;
+            var newItem = createExampleItem(index);
+            container.appendChild(newItem);
+            // Focus on the new input
+            var firstInput = newItem.querySelector('input[type="text"]');
+            if (firstInput) firstInput.focus();
         });
         
         // Remove example
         container.addEventListener('click', function(e) {
-            if (e.target.closest('.remove-example-btn')) {
-                e.target.closest('.example-item').remove();
+            var removeBtn = e.target.closest('.remove-example-btn');
+            if (removeBtn) {
+                removeBtn.closest('.example-item').remove();
                 reindexExamples();
             }
         });
         
         // Reindex all examples after add/remove/reorder
         function reindexExamples() {
-            const items = container.querySelectorAll('.example-item');
-            items.forEach(function(item, index) {
-                item.querySelectorAll('input').forEach(function(input) {
-                    input.name = input.name.replace(/examples\[\d+\]/, 'examples[' + index + ']');
-                });
-            });
+            var items = container.querySelectorAll('.example-item');
+            for (var i = 0; i < items.length; i++) {
+                var inputs = items[i].querySelectorAll('input');
+                for (var j = 0; j < inputs.length; j++) {
+                    inputs[j].name = inputs[j].name.replace(/examples\[\d+\]/, 'examples[' + i + ']');
+                }
+            }
         }
     }
     
@@ -289,7 +284,6 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initExamples);
     } else {
-        // DOM already loaded, run immediately
         initExamples();
     }
 })();
