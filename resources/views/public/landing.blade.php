@@ -41,22 +41,20 @@
     }
     </script>
     <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "kslang",
-        "operatingSystem": "Android",
-        "applicationCategory": "EducationalApplication",
-        "description": "Learn real Korean slang, swear words, and street talk with native audio pronunciation, real-life examples, and a 4-level intensity system.",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
-        }
-        @if (!empty($playStoreUrl))
-        ,"installUrl": "{{ $playStoreUrl }}"
-        @endif
-    }
+    {!! json_encode(array_filter([
+        '@context' => 'https://schema.org',
+        '@type' => 'SoftwareApplication',
+        'name' => 'kslang',
+        'operatingSystem' => 'Android',
+        'applicationCategory' => 'EducationalApplication',
+        'description' => 'Learn real Korean slang, swear words, and street talk with native audio pronunciation, real-life examples, and a 4-level intensity system.',
+        'offers' => [
+            '@type' => 'Offer',
+            'price' => '0',
+            'priceCurrency' => 'USD',
+        ],
+        'installUrl' => !empty($playStoreUrl) ? $playStoreUrl : null,
+    ]), JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
     </script>
 @endsection
 
