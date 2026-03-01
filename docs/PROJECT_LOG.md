@@ -225,3 +225,17 @@
 - 오늘의 슬랭은 date(Ymd) % totalActive 방식으로 날짜별 고정 (DB 추가 필드 없이 구현)
 - 랜덤 슬랭의 count 최대값은 10으로 제한 (성능 고려)
 - 카테고리 상세는 category 정보와 slangs 페이지네이션을 한 응답에 포함
+
+---
+
+### 작업 내용
+- Google Gemini API 연동 서비스 구현
+  - `GeminiService`: 일반/스트리밍 요청, thinkingConfig, 선택적 responseSchema 지원
+  - `GeminiResponse` DTO: 응답 텍스트·thinking 텍스트 파싱, SSE 스트림 합산, JSON 편의 메서드
+  - `gemini:test` Artisan 커맨드: 프롬프트 입력, --stream/--schema/--thinking 옵션
+  - `.env`에 `GEMINI_API_KEY`, `config/services.php`에 gemini 설정 등록
+
+### 주요 결정 사항
+- GeminiService는 Laravel Http 클라이언트 사용 (Guzzle 직접 의존 없음)
+- responseSchema는 선택적 적용 — null이면 responseMimeType 자체를 빼서 자유 텍스트 응답
+- 스트리밍은 SSE 응답을 파싱하여 전체 텍스트로 합산 반환

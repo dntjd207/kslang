@@ -15,6 +15,9 @@
 ## XSS 방지
 - **mews/purifier**: 3.4 (HTMLPurifier 래퍼, HTML 콘텐츠 정화)
 
+## 외부 API
+- **Google Gemini API**: gemini-3.1-pro-preview 모델, Thinking 지원, 선택적 responseSchema
+
 ## 개발 도구
 - **Pest**: 4 (테스트)
 - **Pint**: 1 (코드 포맷터)
