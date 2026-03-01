@@ -205,3 +205,23 @@
 - `PublicController`에서 별도 `LandingController`로 분리하여 관심사 분리
 - AppSetting::getValue() 헬퍼 활용하여 play_store_url 조회
 - 섹션별 파셜 분리로 가독성과 유지보수성 확보
+
+---
+
+## 2026-03-01
+
+### 작업 내용
+- 앱 연동 API 보강 (6개 → 10개 엔드포인트)
+  - `GET /api/v1/app/version` 응답에 `play_store_url` 추가 (강제 업데이트 시 스토어 이동용)
+  - API Rate Limiting 적용: `throttleApi('60:1')` — 분당 60회 제한
+  - API 에러 응답 일관성 확보: 401/404/429/500 + 기타 HttpException 모두 JSON 형식 반환
+  - `GET /api/v1/app/sync` 데이터 동기화 엔드포인트 추가 (슬랭/카테고리 총 개수 + 최종 수정일)
+  - `GET /api/v1/slangs/random` 랜덤 슬랭 엔드포인트 추가 (count 파라미터, 최대 10개)
+  - `GET /api/v1/slangs/daily` 오늘의 슬랭 엔드포인트 추가 (날짜 기반 시드로 하루 동안 고정)
+  - `GET /api/v1/categories/{category}` 카테고리 상세 엔드포인트 추가 (카테고리 정보 + 소속 슬랭 페이지네이션)
+
+### 주요 결정 사항
+- Rate Limiting은 Laravel 기본 `throttleApi` 사용 (분당 60회)
+- 오늘의 슬랭은 date(Ymd) % totalActive 방식으로 날짜별 고정 (DB 추가 필드 없이 구현)
+- 랜덤 슬랭의 count 최대값은 10으로 제한 (성능 고려)
+- 카테고리 상세는 category 정보와 slangs 페이지네이션을 한 응답에 포함

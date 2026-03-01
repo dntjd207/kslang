@@ -47,6 +47,51 @@ class SlangController extends Controller
         return new SlangResource($slang);
     }
 
+    public function random(Request $request): SlangResource|AnonymousResourceCollection
+    {
+        $count = min((int) ($request->input('count', 1)), 10);
+        if ($count < 1) {
+            $count = 1;
+        }
+
+        $slangs = Slang::with(['categories', 'examples'])
+            ->where('is_active', true)
+            ->inRandomOrder()
+            ->limit($count)
+            ->get();
+
+        if ($count === 1) {
+            if ($slangs->isEmpty()) {
+                abort(404, '요청한 리소스를 찾을 수 없습니다.');
+            }
+
+            return new SlangResource($slangs->first());
+        }
+
+        return SlangResource::collection($slangs);
+    }
+
+    public function daily(): SlangResource
+    {
+        $seed = (int) date('Ymd');
+        $totalActive = Slang::where('is_active', true)->count();
+
+        if ($totalActive === 0) {
+            abort(404, '요청한 리소스를 찾을 수 없습니다.');
+        }
+
+        $offset = $seed % $totalActive;
+
+        $slang = Slang::with(['categories', 'examples'])
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->offset($offset)
+            ->limit(1)
+            ->firstOrFail();
+
+        return new SlangResource($slang);
+    }
+
     public function search(Request $request): AnonymousResourceCollection
     {
         $keyword = trim($request->input('q', ''));
