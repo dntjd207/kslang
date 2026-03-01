@@ -2,7 +2,9 @@
 
 @section('title', 'kslang | Learn Korean Slang, Swear Words & Street Talk')
 
-@section('canonical', url('/'))
+@section('head')
+    <link rel="canonical" href="{{ url('/') }}">
+@endsection
 
 @section('meta')
     <meta name="description" content="Learn real Korean slang, bad words, and curse words with native audio and real-life examples. A 4-level system from mild to extreme. Download free on Google Play.">
@@ -26,21 +28,22 @@
     <meta name="twitter:image" content="{{ asset('images/og-cover.png') }}">
     <meta name="twitter:image:alt" content="kslang - Learn Korean Slang the Fun Way">
 
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
-        "name": "kslang — Learn Korean Slang, Bad Words & Street Talk",
-        "description": "Learn real Korean slang, bad words, and curse words with native audio and real-life examples.",
-        "url": "{{ url('/') }}",
-        "inLanguage": "en",
-        "publisher": {
-            "@type": "Organization",
-            "name": "kslang"
-        }
-    }
-    </script>
-    <script type="application/ld+json">
+    {!! '<script type="application/ld+json">' !!}
+    {!! json_encode([
+        '@context' => 'https://schema.org',
+        '@type' => 'WebPage',
+        'name' => 'kslang — Learn Korean Slang, Bad Words & Street Talk',
+        'description' => 'Learn real Korean slang, bad words, and curse words with native audio and real-life examples.',
+        'url' => url('/'),
+        'inLanguage' => 'en',
+        'publisher' => [
+            '@type' => 'Organization',
+            'name' => 'kslang',
+        ],
+    ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    {!! '</script>' !!}
+
+    {!! '<script type="application/ld+json">' !!}
     {!! json_encode(array_filter([
         '@context' => 'https://schema.org',
         '@type' => 'SoftwareApplication',
@@ -55,7 +58,7 @@
         ],
         'installUrl' => !empty($playStoreUrl) ? $playStoreUrl : null,
     ]), JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
-    </script>
+    {!! '</script>' !!}
 @endsection
 
 @section('body_class', 'bg-slate-950 text-slate-100 selection:bg-fuchsia-500 selection:text-white')
