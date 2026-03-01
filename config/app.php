@@ -65,7 +65,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Seoul'),
+
+    'api_key' => env('APP_API_KEY'),
 
     /*
     |--------------------------------------------------------------------------

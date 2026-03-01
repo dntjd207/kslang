@@ -2,24 +2,36 @@
 
 namespace Database\Seeders;
 
+use App\Models\AppSetting;
+use App\Models\Page;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        User::create([
+            'name' => 'Admin',
+            'email' => 'admin@kslang.app',
+            'login_id' => 'admin',
+            'password' => bcrypt('R@W9tn!232323'),
         ]);
+
+        Page::create([
+            'slug' => 'privacy',
+            'title' => 'Privacy Policy',
+            'content' => '',
+        ]);
+
+        Page::create([
+            'slug' => 'terms',
+            'title' => 'Terms of Service',
+            'content' => '',
+        ]);
+
+        AppSetting::create(['key' => 'min_version', 'value' => '1.0.0']);
+        AppSetting::create(['key' => 'latest_version', 'value' => '1.0.0']);
+        AppSetting::create(['key' => 'play_store_url', 'value' => '']);
     }
 }
