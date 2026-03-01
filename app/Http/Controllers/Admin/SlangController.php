@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\QuickStoreSlangRequest;
 use App\Http\Requests\Admin\ReorderSlangRequest;
 use App\Http\Requests\Admin\StoreSlangRequest;
 use App\Http\Requests\Admin\UpdateSlangRequest;
 use App\Models\Category;
 use App\Models\Slang;
 use App\Services\AudioFileService;
+use App\Services\SlangAutoFillService;
 use App\Services\SlangService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +21,8 @@ class SlangController extends Controller
 {
     public function __construct(
         private SlangService $slangService,
-        private AudioFileService $audioFileService
+        private AudioFileService $audioFileService,
+        private SlangAutoFillService $autoFillService
     ) {}
 
     public function index(Request $request): View
@@ -47,16 +50,26 @@ class SlangController extends Controller
             });
         }
 
+        if ($request->filled('content_status')) {
+            $query->where('content_status', $request->content_status);
+        }
+
         $slangs = $query->orderBy('sort_order', 'asc')
             ->paginate(20)
             ->withQueryString();
 
         $categories = Category::orderBy('sort_order', 'asc')->get();
 
+        $statusCounts = Slang::query()
+            ->selectRaw('content_status, COUNT(*) as count')
+            ->groupBy('content_status')
+            ->pluck('count', 'content_status');
+
         return view('admin.slangs.index', [
             'pageTitle' => '욕/슬랭 관리',
             'slangs' => $slangs,
             'categories' => $categories,
+            'statusCounts' => $statusCounts,
         ]);
     }
 
@@ -156,6 +169,116 @@ class SlangController extends Controller
         return response()->json([
             'success' => true,
             'message' => '음성 파일이 삭제되었습니다.',
+        ]);
+    }
+
+    /**
+     * 단어만 빠르게 등록 (AI 자동 생성 대기).
+     */
+    public function quickStore(QuickStoreSlangRequest $request): JsonResponse
+    {
+        $words = $request->parsedWords();
+
+        if (empty($words)) {
+            return response()->json([
+                'success' => false,
+                'message' => '유효한 단어가 없습니다.',
+            ], 422);
+        }
+
+        $maxSortOrder = Slang::max('sort_order') ?? -1;
+        $created = 0;
+        $duplicates = [];
+
+        foreach ($words as $word) {
+            $exists = Slang::where('korean', $word)->exists();
+            if ($exists) {
+                $duplicates[] = $word;
+
+                continue;
+            }
+
+            Slang::create([
+                'korean' => $word,
+                'pronunciation' => '',
+                'english_description' => '',
+                'korean_description' => '',
+                'level' => 1,
+                'usage_frequency' => '가끔 사용',
+                'usage_context' => '',
+                'sort_order' => ++$maxSortOrder,
+                'is_active' => false,
+                'content_status' => Slang::STATUS_PENDING,
+            ]);
+
+            $created++;
+        }
+
+        $message = "{$created}개 단어가 등록되었습니다.";
+        if (! empty($duplicates)) {
+            $message .= ' (중복 제외: '.implode(', ', $duplicates).')';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'created' => $created,
+            'duplicates' => $duplicates,
+        ]);
+    }
+
+    /**
+     * AI 생성 콘텐츠 승인.
+     */
+    public function approve(Slang $slang): JsonResponse
+    {
+        if ($slang->content_status !== Slang::STATUS_GENERATED) {
+            return response()->json([
+                'success' => false,
+                'message' => '승인할 수 없는 상태입니다.',
+            ], 422);
+        }
+
+        $slang->update([
+            'content_status' => Slang::STATUS_APPROVED,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "'{$slang->korean}' 콘텐츠가 승인되었습니다.",
+        ]);
+    }
+
+    /**
+     * AI 생성 콘텐츠 반려 (pending으로 되돌려 재생성 대기).
+     */
+    public function reject(Slang $slang): JsonResponse
+    {
+        if ($slang->content_status !== Slang::STATUS_GENERATED) {
+            return response()->json([
+                'success' => false,
+                'message' => '반려할 수 없는 상태입니다.',
+            ], 422);
+        }
+
+        $slang->examples()->delete();
+        $slang->categories()->detach();
+
+        $slang->update([
+            'pronunciation' => '',
+            'english_description' => '',
+            'korean_description' => '',
+            'level' => 1,
+            'usage_frequency' => '가끔 사용',
+            'usage_context' => '',
+            'content_status' => Slang::STATUS_PENDING,
+            'is_active' => false,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "'{$slang->korean}' 콘텐츠가 반려되었습니다. 다음 자동 생성 시 재시도됩니다.",
         ]);
     }
 }

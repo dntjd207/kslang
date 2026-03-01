@@ -11,3 +11,4 @@
 | F-008 앱 버전 관리 | 앱 최소 지원 버전·최신 버전·Play Store URL 관리, 시맨틱 버저닝 검증, 앱 버전 체크 API | `docs/app-settings/SPECS.md` |
 | F-009 랜딩 페이지 | 앱 소개 공개 랜딩 페이지, slang 미리보기 카드, Google Play 다운로드 CTA | `docs/landing/SPECS.md` |
 | F-010 앱 API | 안드로이드 앱용 REST API 7개 엔드포인트 (욕/슬랭 목록·상세·검색, 카테고리, 앱 버전, 개인정보처리방침, 이용약관), X-API-Key 인증, API Resource 활용 | `docs/app-api/SPECS.md` |
+| F-011 AI 자동 콘텐츠 생성 | 단어만 등록 → Gemini AI 자동 콘텐츠 생성 (responseSchema), 관리자 승인 워크플로우, 5분 주기 cron | `docs/auto-fill/SPECS.md` |

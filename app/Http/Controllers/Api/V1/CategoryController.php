@@ -15,7 +15,7 @@ class CategoryController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $categories = Category::withCount(['slangs' => function ($query) {
-            $query->where('is_active', true);
+            $query->apiVisible();
         }])
             ->orderBy('sort_order', 'asc')
             ->get();
@@ -32,12 +32,12 @@ class CategoryController extends Controller
 
         $slangs = $category->slangs()
             ->with(['categories', 'examples'])
-            ->where('is_active', true)
+            ->apiVisible()
             ->orderBy('sort_order', 'asc')
             ->paginate($perPage);
 
         $category->loadCount(['slangs' => function ($query) {
-            $query->where('is_active', true);
+            $query->apiVisible();
         }]);
 
         return response()->json([

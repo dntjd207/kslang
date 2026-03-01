@@ -239,3 +239,22 @@
 - GeminiService는 Laravel Http 클라이언트 사용 (Guzzle 직접 의존 없음)
 - responseSchema는 선택적 적용 — null이면 responseMimeType 자체를 빼서 자유 텍스트 응답
 - 스트리밍은 SSE 응답을 파싱하여 전체 텍스트로 합산 반환
+
+---
+
+### 작업 내용
+- F-011 AI 자동 콘텐츠 생성 기능 구현
+  - `slangs` 테이블에 `content_status` 컬럼 추가 (complete/pending/generated/approved)
+  - `SlangAutoFillService`: Gemini responseSchema로 DB 구조에 맞는 콘텐츠 자동 생성, 카테고리 자동 매칭
+  - `AutoFillSlangsCommand`: `slang:auto-fill` Artisan 커맨드, 5분 주기 cron 스케줄
+  - 관리자 빠른 등록: 단어만 입력하면 pending 상태로 생성 (복수 단어 지원, 중복 체크)
+  - 관리자 승인/반려 워크플로우: generated → approved(API 노출) 또는 → pending(재생성 대기)
+  - API 필터링: `apiVisible()` 스코프로 complete/approved 상태만 노출 (모든 API 엔드포인트 일괄 적용)
+  - Admin 뷰: 콘텐츠 상태 필터 탭, 상태 뱃지, 빠른 등록 모달, 승인/반려 버튼
+
+### 주요 결정 사항
+- content_status는 string(20) 컬럼으로 구현 (enum 대신, 마이그레이션 유연성)
+- 기존 수동 등록 슬랭은 `complete` 상태로 기존 동작 영향 없음
+- AI 생성 시 is_active=false로 설정하여 승인 전 노출 방지 이중 안전장치
+- 반려 시 기존 AI 콘텐츠 초기화 후 pending으로 되돌려 자동 재생성 유도
+- Cron 한 번에 최대 5건 처리로 API 부하 분산

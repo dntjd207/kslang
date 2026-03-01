@@ -11,7 +11,7 @@ class LandingController extends Controller
     public function index(): View
     {
         $previewSlangs = Slang::query()
-            ->where('is_active', true)
+            ->apiVisible()
             ->whereIn('level', [1, 2])
             ->orderBy('sort_order', 'asc')
             ->limit(8)

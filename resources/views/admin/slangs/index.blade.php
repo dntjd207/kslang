@@ -5,17 +5,55 @@
 @section('content')
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-gray-800">욕/슬랭 관리</h2>
-        <a href="{{ route('admin.slangs.create') }}">
-            <x-common.button>
+        <div class="flex items-center gap-2">
+            <x-common.button variant="secondary" onclick="openQuickAddModal()">
                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
-                새 욕/슬랭 추가
+                빠른 등록
             </x-common.button>
-        </a>
+            <a href="{{ route('admin.slangs.create') }}">
+                <x-common.button>
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    새 욕/슬랭 추가
+                </x-common.button>
+            </a>
+        </div>
     </div>
 
-    @if ($slangs->total() > 0 || request()->hasAny(['search', 'level', 'category_id']))
+    @if ($slangs->total() > 0 || request()->hasAny(['search', 'level', 'category_id', 'content_status']))
+        {{-- 콘텐츠 상태 필터 탭 --}}
+        <div class="flex flex-wrap gap-2 mb-4">
+            @php
+                $currentStatus = request('content_status');
+                $totalCount = $statusCounts->sum();
+                $statusTabs = [
+                    '' => ['label' => '전체', 'count' => $totalCount, 'color' => ''],
+                    'pending' => ['label' => 'AI 대기', 'count' => $statusCounts->get('pending', 0), 'color' => 'bg-amber-100 text-amber-800'],
+                    'generated' => ['label' => '승인 대기', 'count' => $statusCounts->get('generated', 0), 'color' => 'bg-blue-100 text-blue-800'],
+                    'approved' => ['label' => 'AI 승인', 'count' => $statusCounts->get('approved', 0), 'color' => 'bg-green-100 text-green-800'],
+                    'complete' => ['label' => '수동 등록', 'count' => $statusCounts->get('complete', 0), 'color' => 'bg-gray-100 text-gray-800'],
+                ];
+            @endphp
+            @foreach ($statusTabs as $value => $tab)
+                @php
+                    $isActive = ($currentStatus == $value) || ($value === '' && !$currentStatus);
+                    $url = request()->fullUrlWithQuery(['content_status' => $value ?: null, 'page' => null]);
+                @endphp
+                <a href="{{ $url }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded-lg transition flex items-center gap-1.5
+                          {{ $isActive ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">
+                    {{ $tab['label'] }}
+                    <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-semibold rounded-full
+                                 {{ $isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600' }}">
+                        {{ $tab['count'] }}
+                    </span>
+                </a>
+            @endforeach
+        </div>
+
         {{-- 검색 + 카테고리 필터 --}}
         <div class="flex flex-col sm:flex-row gap-3 mb-4">
             <div class="relative flex-1">
@@ -93,13 +131,20 @@
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">레벨</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">카테고리</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">빈도</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">콘텐츠</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">상태</th>
                                 <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">관리</th>
                             </tr>
                         </thead>
                         <tbody id="slang-list" class="bg-white divide-y divide-gray-100">
                             @foreach ($slangs as $slang)
-                                <tr class="slang-item hover:bg-gray-50/50 transition-colors duration-100 {{ !$slang->is_active ? 'bg-gray-50 opacity-60' : '' }}"
+                                @php
+                                    $isPending = $slang->content_status === 'pending';
+                                    $isGenerated = $slang->content_status === 'generated';
+                                    $rowClass = $isPending ? 'bg-amber-50/50' : ($isGenerated ? 'bg-blue-50/50' : '');
+                                    $inactiveClass = !$slang->is_active && !$isPending && !$isGenerated ? 'bg-gray-50 opacity-60' : '';
+                                @endphp
+                                <tr class="slang-item hover:bg-gray-50/50 transition-colors duration-100 {{ $rowClass }} {{ $inactiveClass }}"
                                     data-id="{{ $slang->id }}">
                                     <td class="px-3 py-3">
                                         <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors">
@@ -109,44 +154,91 @@
                                         </div>
                                     </td>
                                     <td class="px-4 py-3 text-sm font-semibold text-gray-800">{{ $slang->korean }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $slang->pronunciation }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        {{ $isPending ? '-' : $slang->pronunciation }}
+                                    </td>
                                     <td class="px-4 py-3">
+                                        @if ($isPending)
+                                            <span class="text-sm text-gray-400">-</span>
+                                        @else
+                                            @php
+                                                $levelColors = [
+                                                    1 => 'bg-green-100 text-green-800',
+                                                    2 => 'bg-yellow-100 text-yellow-800',
+                                                    3 => 'bg-orange-100 text-orange-800',
+                                                    4 => 'bg-red-100 text-red-800',
+                                                ];
+                                            @endphp
+                                            <span class="inline-flex items-center h-5 px-2 text-[11px] font-medium rounded-full {{ $levelColors[$slang->level] ?? 'bg-gray-100 text-gray-800' }}">
+                                                {{ $slang->level }}단계
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        @if ($isPending)
+                                            <span class="text-sm text-gray-400">-</span>
+                                        @else
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach ($slang->categories as $cat)
+                                                    <span class="inline-flex items-center h-5 px-2 text-[11px] font-medium rounded-full bg-indigo-50 text-indigo-600">
+                                                        {{ $cat->name }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        {{ $isPending ? '-' : $slang->usage_frequency }}
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
                                         @php
-                                            $levelColors = [
-                                                1 => 'bg-green-100 text-green-800',
-                                                2 => 'bg-yellow-100 text-yellow-800',
-                                                3 => 'bg-orange-100 text-orange-800',
-                                                4 => 'bg-red-100 text-red-800',
+                                            $statusColors = [
+                                                'complete' => 'bg-gray-100 text-gray-700',
+                                                'pending' => 'bg-amber-100 text-amber-700',
+                                                'generated' => 'bg-blue-100 text-blue-700',
+                                                'approved' => 'bg-green-100 text-green-700',
+                                            ];
+                                            $statusLabels = [
+                                                'complete' => '수동',
+                                                'pending' => 'AI 대기',
+                                                'generated' => '승인 대기',
+                                                'approved' => 'AI 승인',
                                             ];
                                         @endphp
-                                        <span class="inline-flex items-center h-5 px-2 text-[11px] font-medium rounded-full {{ $levelColors[$slang->level] ?? 'bg-gray-100 text-gray-800' }}">
-                                            {{ $slang->level }}단계
+                                        <span class="inline-flex items-center h-5 px-2 text-[11px] font-medium rounded-full {{ $statusColors[$slang->content_status] ?? 'bg-gray-100 text-gray-700' }}">
+                                            {{ $statusLabels[$slang->content_status] ?? $slang->content_status }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex flex-wrap gap-1">
-                                            @foreach ($slang->categories as $cat)
-                                                <span class="inline-flex items-center h-5 px-2 text-[11px] font-medium rounded-full bg-indigo-50 text-indigo-600">
-                                                    {{ $cat->name }}
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $slang->usage_frequency }}</td>
                                     <td class="px-4 py-3 text-center">
-                                        <button type="button"
-                                                class="toggle-active relative w-10 h-[22px] rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ $slang->is_active ? 'bg-indigo-600' : 'bg-gray-300' }}"
-                                                data-id="{{ $slang->id }}"
-                                                role="switch"
-                                                aria-checked="{{ $slang->is_active ? 'true' : 'false' }}">
-                                            <span class="block w-[18px] h-[18px] bg-white rounded-full shadow-sm transition-transform duration-200 absolute top-[2px] {{ $slang->is_active ? 'translate-x-[20px]' : 'translate-x-[2px]' }}"></span>
-                                        </button>
+                                        @if (!$isPending)
+                                            <button type="button"
+                                                    class="toggle-active relative w-10 h-[22px] rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ $slang->is_active ? 'bg-indigo-600' : 'bg-gray-300' }}"
+                                                    data-id="{{ $slang->id }}"
+                                                    role="switch"
+                                                    aria-checked="{{ $slang->is_active ? 'true' : 'false' }}">
+                                                <span class="block w-[18px] h-[18px] bg-white rounded-full shadow-sm transition-transform duration-200 absolute top-[2px] {{ $slang->is_active ? 'translate-x-[20px]' : 'translate-x-[2px]' }}"></span>
+                                            </button>
+                                        @else
+                                            <span class="text-sm text-gray-400">-</span>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route('admin.slangs.edit', $slang) }}">
-                                                <x-common.button variant="secondary" size="sm">수정</x-common.button>
-                                            </a>
+                                            @if ($isGenerated)
+                                                <x-common.button variant="success" size="sm"
+                                                                 onclick="approveSlang({{ $slang->id }}, '{{ addslashes($slang->korean) }}')">
+                                                    승인
+                                                </x-common.button>
+                                                <x-common.button variant="danger" size="sm"
+                                                                 onclick="rejectSlang({{ $slang->id }}, '{{ addslashes($slang->korean) }}')">
+                                                    반려
+                                                </x-common.button>
+                                            @endif
+                                            @if (!$isPending)
+                                                <a href="{{ route('admin.slangs.edit', $slang) }}">
+                                                    <x-common.button variant="secondary" size="sm">수정</x-common.button>
+                                                </a>
+                                            @endif
                                             <x-common.button variant="danger" size="sm"
                                                              onclick="openDeleteModal({{ $slang->id }}, '{{ addslashes($slang->korean) }}')">
                                                 삭제
@@ -171,14 +263,22 @@
             </svg>
             <p class="text-gray-500 mb-1">등록된 욕/슬랭이 없습니다.</p>
             <p class="text-sm text-gray-400 mb-6">아래 버튼을 눌러 첫 욕/슬랭을 추가하세요.</p>
-            <a href="{{ route('admin.slangs.create') }}">
-                <x-common.button>
+            <div class="flex items-center justify-center gap-3">
+                <x-common.button variant="secondary" onclick="openQuickAddModal()">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
-                    새 욕/슬랭 추가
+                    빠른 등록 (AI)
                 </x-common.button>
-            </a>
+                <a href="{{ route('admin.slangs.create') }}">
+                    <x-common.button>
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        새 욕/슬랭 추가
+                    </x-common.button>
+                </a>
+            </div>
         </div>
     @endif
 
@@ -216,6 +316,46 @@
         </div>
     </div>
 
+    {{-- 빠른 등록 모달 --}}
+    <div id="quick-add-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-black/50 transition-opacity" onclick="closeQuickAddModal()"></div>
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="max-w-md w-full bg-white rounded-xl shadow-xl transform transition-all">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">빠른 등록 (AI 자동 생성)</h3>
+                    <button onclick="closeQuickAddModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="px-6 py-5">
+                    <p class="text-sm text-gray-600 mb-3">
+                        단어만 입력하면 AI가 자동으로 콘텐츠를 생성합니다.
+                        여러 단어를 줄바꿈 또는 쉼표로 구분하여 한 번에 등록할 수 있습니다.
+                    </p>
+                    <textarea id="quick-add-words"
+                              rows="6"
+                              placeholder="예:&#10;씨발&#10;개새끼&#10;또는: 씨발, 개새끼"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
+                    <p class="text-xs text-gray-400 mt-2">
+                        등록 후 5분마다 자동으로 AI가 콘텐츠를 생성합니다. 생성된 콘텐츠는 승인 후 API에 반영됩니다.
+                    </p>
+                </div>
+
+                <div class="px-6 py-3 bg-gray-50 rounded-b-xl flex justify-end space-x-3">
+                    <x-common.button variant="secondary" size="sm" type="button" onclick="closeQuickAddModal()">
+                        취소
+                    </x-common.button>
+                    <x-common.button size="sm" type="button" id="confirm-quick-add">
+                        등록
+                    </x-common.button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- 토스트 컨테이너 --}}
     <div id="toast-container" class="fixed top-4 right-4 z-[60] space-y-2 pointer-events-none"></div>
 @endsection
@@ -225,7 +365,6 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-        // === 토스트 알림 ===
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const colors = {
@@ -384,6 +523,104 @@
                 btn.disabled = false;
             });
         });
+
+        // === 빠른 등록 모달 ===
+        window.openQuickAddModal = function () {
+            document.getElementById('quick-add-words').value = '';
+            openModal('quick-add-modal');
+            setTimeout(() => document.getElementById('quick-add-words').focus(), 100);
+        };
+
+        function closeQuickAddModal() {
+            closeModal('quick-add-modal');
+        }
+
+        document.getElementById('confirm-quick-add')?.addEventListener('click', function () {
+            const textarea = document.getElementById('quick-add-words');
+            const words = textarea.value.trim();
+            if (!words) {
+                showToast('단어를 입력해주세요.', 'error');
+                return;
+            }
+
+            const btn = this;
+            btn.disabled = true;
+
+            fetch('/admin/slangs/quick-store', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ words })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeQuickAddModal();
+                    showToast(data.message, 'success');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showToast(data.message || '등록에 실패했습니다.', 'error');
+                }
+            })
+            .catch(() => {
+                showToast('등록에 실패했습니다.', 'error');
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
+        });
+
+        // === 승인/반려 ===
+        window.approveSlang = function (id, korean) {
+            if (!confirm(`'${korean}' 콘텐츠를 승인하시겠습니까?`)) return;
+
+            fetch(`/admin/slangs/${id}/approve`, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showToast(data.message || '승인에 실패했습니다.', 'error');
+                }
+            })
+            .catch(() => {
+                showToast('승인에 실패했습니다.', 'error');
+            });
+        };
+
+        window.rejectSlang = function (id, korean) {
+            if (!confirm(`'${korean}' 콘텐츠를 반려하시겠습니까?\n기존 AI 생성 콘텐츠가 삭제되고 다시 생성됩니다.`)) return;
+
+            fetch(`/admin/slangs/${id}/reject`, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showToast(data.message || '반려에 실패했습니다.', 'error');
+                }
+            })
+            .catch(() => {
+                showToast('반려에 실패했습니다.', 'error');
+            });
+        };
 
         // === SortableJS 드래그 앤 드롭 ===
         document.addEventListener('DOMContentLoaded', function () {

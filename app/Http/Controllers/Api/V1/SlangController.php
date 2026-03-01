@@ -18,7 +18,7 @@ class SlangController extends Controller
         }
 
         $query = Slang::with(['categories', 'examples'])
-            ->where('is_active', true);
+            ->apiVisible();
 
         if ($request->filled('level') && in_array((int) $request->level, [1, 2, 3, 4])) {
             $query->where('level', (int) $request->level);
@@ -38,7 +38,7 @@ class SlangController extends Controller
 
     public function show(Slang $slang): SlangResource
     {
-        if (! $slang->is_active) {
+        if (! $slang->is_active || ! in_array($slang->content_status, [Slang::STATUS_COMPLETE, Slang::STATUS_APPROVED])) {
             abort(404, '요청한 리소스를 찾을 수 없습니다.');
         }
 
@@ -55,7 +55,7 @@ class SlangController extends Controller
         }
 
         $slangs = Slang::with(['categories', 'examples'])
-            ->where('is_active', true)
+            ->apiVisible()
             ->inRandomOrder()
             ->limit($count)
             ->get();
@@ -74,7 +74,7 @@ class SlangController extends Controller
     public function daily(): SlangResource
     {
         $seed = (int) date('Ymd');
-        $totalActive = Slang::where('is_active', true)->count();
+        $totalActive = Slang::apiVisible()->count();
 
         if ($totalActive === 0) {
             abort(404, '요청한 리소스를 찾을 수 없습니다.');
@@ -83,7 +83,7 @@ class SlangController extends Controller
         $offset = $seed % $totalActive;
 
         $slang = Slang::with(['categories', 'examples'])
-            ->where('is_active', true)
+            ->apiVisible()
             ->orderBy('id')
             ->offset($offset)
             ->limit(1)
@@ -107,7 +107,7 @@ class SlangController extends Controller
         }
 
         $slangs = Slang::with(['categories', 'examples'])
-            ->where('is_active', true)
+            ->apiVisible()
             ->where(function ($q) use ($keyword) {
                 $q->where('korean', 'like', "%{$keyword}%")
                     ->orWhere('pronunciation', 'like', "%{$keyword}%")

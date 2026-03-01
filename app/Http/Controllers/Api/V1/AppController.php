@@ -26,8 +26,8 @@ class AppController extends Controller
     {
         return response()->json([
             'slangs' => [
-                'total_count' => Slang::where('is_active', true)->count(),
-                'last_updated_at' => Slang::where('is_active', true)->max('updated_at'),
+                'total_count' => Slang::apiVisible()->count(),
+                'last_updated_at' => Slang::apiVisible()->max('updated_at'),
             ],
             'categories' => [
                 'total_count' => Category::count(),

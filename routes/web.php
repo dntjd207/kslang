@@ -35,8 +35,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
 
         Route::post('slangs/reorder', [SlangController::class, 'reorder'])->name('slangs.reorder');
+        Route::post('slangs/quick-store', [SlangController::class, 'quickStore'])->name('slangs.quickStore');
         Route::resource('slangs', SlangController::class)->except(['show']);
         Route::patch('slangs/{slang}/toggle', [SlangController::class, 'toggle'])->name('slangs.toggle');
+        Route::patch('slangs/{slang}/approve', [SlangController::class, 'approve'])->name('slangs.approve');
+        Route::patch('slangs/{slang}/reject', [SlangController::class, 'reject'])->name('slangs.reject');
         Route::delete('slangs/{slang}/audio', [SlangController::class, 'destroyAudio'])->name('slangs.destroyAudio');
 
         Route::get('pages/{slug}/edit', [PageController::class, 'edit'])->name('pages.edit')->where('slug', 'privacy|terms');

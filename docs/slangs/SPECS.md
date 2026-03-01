@@ -69,3 +69,4 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-02-28 | F-003 욕/슬랭 관리 기능 구현 | 초기 구현 |
 | 2026-02-28 | F-004 사용 예문 관리 개선 | 예문 Partial 분리, 필드별 에러, 반응형, prepareForValidation, sort_order 인덱스 |
 | 2026-02-28 | F-005 음성 파일 관리 개선 | AudioFileService 분리, _audio-upload Partial 분리, 드래그 앤 드롭, 미리듣기, AJAX 삭제, destroyAudio 라우트 추가 |
+| 2026-03-01 | F-011 AI 자동 콘텐츠 생성 | content_status 컬럼 추가, 빠른 등록/승인/반려 라우트, 상태 필터 탭·뱃지, apiVisible 스코프 |

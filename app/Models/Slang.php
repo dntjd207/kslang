@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Storage;
 
 class Slang extends Model
 {
+    public const STATUS_COMPLETE = 'complete';
+
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_GENERATED = 'generated';
+
+    public const STATUS_APPROVED = 'approved';
+
     protected $fillable = [
         'korean',
         'pronunciation',
@@ -20,6 +28,7 @@ class Slang extends Model
         'audio_file',
         'sort_order',
         'is_active',
+        'content_status',
     ];
 
     protected function casts(): array
@@ -29,6 +38,35 @@ class Slang extends Model
             'sort_order' => 'integer',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * API에 노출 가능한 슬랭만 조회하는 스코프.
+     * content_status가 'complete' 또는 'approved'이고, is_active가 true인 것만 반환.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<self>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<self>
+     */
+    public function scopeApiVisible($query)
+    {
+        return $query->where('is_active', true)
+            ->whereIn('content_status', [self::STATUS_COMPLETE, self::STATUS_APPROVED]);
+    }
+
+    public function needsAutoFill(): bool
+    {
+        return $this->content_status === self::STATUS_PENDING;
+    }
+
+    public function getContentStatusLabelAttribute(): string
+    {
+        return match ($this->content_status) {
+            self::STATUS_COMPLETE => '수동 등록',
+            self::STATUS_PENDING => 'AI 대기',
+            self::STATUS_GENERATED => 'AI 생성 (승인 대기)',
+            self::STATUS_APPROVED => 'AI 승인됨',
+            default => '알 수 없음',
+        };
     }
 
     public function categories(): BelongsToMany
