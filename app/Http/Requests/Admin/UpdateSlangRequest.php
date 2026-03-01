@@ -39,7 +39,7 @@ class UpdateSlangRequest extends FormRequest
             'english_description' => ['required', 'string'],
             'korean_description' => ['required', 'string'],
             'level' => ['required', 'integer', 'between:1,4'],
-            'usage_frequency' => ['required', 'string', 'in:자주 사용,가끔 사용,거의 안씀'],
+            'usage_frequency' => ['required', 'string', 'in:Common,Occasional,Rare'],
             'usage_context' => ['required', 'string'],
             'is_active' => ['nullable', 'boolean'],
             'category_ids' => ['nullable', 'array'],

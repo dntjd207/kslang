@@ -6,7 +6,7 @@
         3 => '3단계: 매운맛 (Strong)',
         4 => '4단계: 극한맛 (Extreme)',
     ];
-    $frequencies = ['자주 사용', '가끔 사용', '거의 안씀'];
+    $frequencies = ['Common', 'Occasional', 'Rare'];
 @endphp
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

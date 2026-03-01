@@ -9,12 +9,12 @@
 
     <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">
-            Ready to Learn Real <br class="hidden sm:block"/>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-cyan-400">Korean Street Talk?</span>
+            Ready to Talk Like <br class="hidden sm:block"/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-cyan-400">a Real Korean?</span>
         </h2>
         
         <p class="text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
-            Download kslang and start learning Korean slang, bad words, and expressions that real Koreans actually use every day.
+            Trending buzzwords, slang, and street talk — all verified by a real Korean in Seoul. Download kslang and stop being the only one who doesn't get the joke.
         </p>
 
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">

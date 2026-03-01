@@ -80,7 +80,7 @@ class SlangAutoFillService
 2. english_description: 영어로 된 상세 설명 (2~3문장, 의미·뉘앙스·문화적 맥락 포함)
 3. korean_description: 한국어로 된 상세 설명 (2~3문장, 의미·뉘앙스·사용 맥락 포함)
 4. level: 강도 레벨 (1=순한맛, 2=중간맛, 3=매운맛, 4=극한맛)
-5. usage_frequency: 사용 빈도 (반드시 "자주 사용", "가끔 사용", "거의 안씀" 중 하나)
+5. usage_frequency: Usage frequency (must be one of "Common", "Occasional", "Rare")
 6. usage_context: 주로 사용되는 상황·맥락 설명 (한국어, 2~3문장)
 7. examples: 사용 예문 2~4개 (각각 korean_example과 english_example)
 8. suggested_categories: 현재 등록된 카테고리 중 적합한 것을 선택 (여러 개 가능)
@@ -121,7 +121,7 @@ PROMPT;
                 'usage_frequency' => [
                     'type' => 'STRING',
                     'description' => 'Usage frequency',
-                    'enum' => ['자주 사용', '가끔 사용', '거의 안씀'],
+                    'enum' => ['Common', 'Occasional', 'Rare'],
                 ],
                 'usage_context' => [
                     'type' => 'STRING',
@@ -176,10 +176,10 @@ PROMPT;
         return DB::transaction(function () use ($slang, $data) {
             $level = max(1, min(4, (int) ($data['level'] ?? 1)));
 
-            $allowedFrequencies = ['자주 사용', '가끔 사용', '거의 안씀'];
+            $allowedFrequencies = ['Common', 'Occasional', 'Rare'];
             $frequency = in_array($data['usage_frequency'] ?? '', $allowedFrequencies)
                 ? $data['usage_frequency']
-                : '가끔 사용';
+                : 'Occasional';
 
             $slang->update([
                 'pronunciation' => $data['pronunciation'] ?? '',
