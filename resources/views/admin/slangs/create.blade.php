@@ -15,7 +15,7 @@
         </a>
     </div>
 
-    <form action="{{ route('admin.slangs.store') }}" method="POST" enctype="multipart/form-data">
+    <form id="slang-form" action="{{ route('admin.slangs.store') }}" method="POST" enctype="multipart/form-data" data-slang-id="">
         @csrf
         @include('admin.slangs._form')
     </form>

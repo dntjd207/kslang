@@ -37,6 +37,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('slangs/reorder', [SlangController::class, 'reorder'])->name('slangs.reorder');
         Route::post('slangs/quick-store', [SlangController::class, 'quickStore'])->name('slangs.quickStore');
         Route::resource('slangs', SlangController::class)->except(['show']);
+        Route::post('slangs/{slang}/regenerate-section', [SlangController::class, 'regenerateSection'])->name('slangs.regenerateSection');
         Route::patch('slangs/{slang}/toggle', [SlangController::class, 'toggle'])->name('slangs.toggle');
         Route::patch('slangs/{slang}/approve', [SlangController::class, 'approve'])->name('slangs.approve');
         Route::patch('slangs/{slang}/reject', [SlangController::class, 'reject'])->name('slangs.reject');

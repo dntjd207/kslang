@@ -145,7 +145,9 @@
                                     $inactiveClass = !$slang->is_active && !$isPending && !$isGenerated ? 'bg-gray-50 opacity-60' : '';
                                 @endphp
                                 <tr class="slang-item hover:bg-gray-50/50 transition-colors duration-100 {{ $rowClass }} {{ $inactiveClass }}"
-                                    data-id="{{ $slang->id }}">
+                                    data-id="{{ $slang->id }}"
+                                    data-content-status="{{ $slang->content_status }}"
+                                    data-is-active="{{ $slang->is_active ? '1' : '0' }}">
                                     <td class="px-3 py-3">
                                         <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors">
                                             <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
@@ -205,31 +207,33 @@
                                                 'approved' => 'AI 승인',
                                             ];
                                         @endphp
-                                        <span class="inline-flex items-center h-5 px-2 text-[11px] font-medium rounded-full {{ $statusColors[$slang->content_status] ?? 'bg-gray-100 text-gray-700' }}">
+                                        <span class="content-status-badge inline-flex items-center h-5 px-2 text-[11px] font-medium rounded-full {{ $statusColors[$slang->content_status] ?? 'bg-gray-100 text-gray-700' }}">
                                             {{ $statusLabels[$slang->content_status] ?? $slang->content_status }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-center">
-                                        @if (!$isPending)
-                                            <button type="button"
-                                                    class="toggle-active relative w-10 h-[22px] rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ $slang->is_active ? 'bg-indigo-600' : 'bg-gray-300' }}"
-                                                    data-id="{{ $slang->id }}"
-                                                    role="switch"
-                                                    aria-checked="{{ $slang->is_active ? 'true' : 'false' }}">
-                                                <span class="block w-[18px] h-[18px] bg-white rounded-full shadow-sm transition-transform duration-200 absolute top-[2px] {{ $slang->is_active ? 'translate-x-[20px]' : 'translate-x-[2px]' }}"></span>
-                                            </button>
-                                        @else
-                                            <span class="text-sm text-gray-400">-</span>
-                                        @endif
+                                        <div class="slang-toggle-cell">
+                                            @if (!$isPending)
+                                                <button type="button"
+                                                        class="toggle-active relative w-10 h-[22px] rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ $slang->is_active ? 'bg-indigo-600' : 'bg-gray-300' }}"
+                                                        data-id="{{ $slang->id }}"
+                                                        role="switch"
+                                                        aria-checked="{{ $slang->is_active ? 'true' : 'false' }}">
+                                                    <span class="block w-[18px] h-[18px] bg-white rounded-full shadow-sm transition-transform duration-200 absolute top-[2px] {{ $slang->is_active ? 'translate-x-[20px]' : 'translate-x-[2px]' }}"></span>
+                                                </button>
+                                            @else
+                                                <span class="text-sm text-gray-400">-</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             @if ($isGenerated)
-                                                <x-common.button variant="success" size="sm"
+                                                <x-common.button variant="success" size="sm" class="approve-ai-action"
                                                                  onclick="approveSlang({{ $slang->id }}, '{{ addslashes($slang->korean) }}')">
                                                     승인
                                                 </x-common.button>
-                                                <x-common.button variant="danger" size="sm"
+                                                <x-common.button variant="danger" size="sm" class="reject-ai-action"
                                                                  onclick="rejectSlang({{ $slang->id }}, '{{ addslashes($slang->korean) }}')">
                                                     반려
                                                 </x-common.button>
@@ -364,6 +368,19 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const currentContentStatusFilter = @js(request('content_status'));
+        const statusBadgeStyles = {
+            complete: 'bg-gray-100 text-gray-700',
+            pending: 'bg-amber-100 text-amber-700',
+            generated: 'bg-blue-100 text-blue-700',
+            approved: 'bg-green-100 text-green-700',
+        };
+        const statusBadgeLabels = {
+            complete: '수동',
+            pending: 'AI 대기',
+            generated: '승인 대기',
+            approved: 'AI 승인',
+        };
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
@@ -389,6 +406,103 @@
                 toast.style.transition = 'all 0.25s ease-in';
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
+        }
+
+        function updateRowVisualState(row) {
+            const contentStatus = row.dataset.contentStatus;
+            const isActive = row.dataset.isActive === '1';
+
+            row.classList.remove('bg-amber-50/50', 'bg-blue-50/50', 'bg-gray-50', 'opacity-60');
+
+            if (contentStatus === 'pending') {
+                row.classList.add('bg-amber-50/50');
+
+                return;
+            }
+
+            if (contentStatus === 'generated') {
+                row.classList.add('bg-blue-50/50');
+
+                return;
+            }
+
+            if (!isActive) {
+                row.classList.add('bg-gray-50', 'opacity-60');
+            }
+        }
+
+        function updateStatusBadge(row, contentStatus) {
+            const badge = row.querySelector('.content-status-badge');
+            if (!badge) {
+                return;
+            }
+
+            badge.className = `content-status-badge inline-flex items-center h-5 px-2 text-[11px] font-medium rounded-full ${statusBadgeStyles[contentStatus] ?? statusBadgeStyles.complete}`;
+            badge.textContent = statusBadgeLabels[contentStatus] ?? contentStatus;
+        }
+
+        function renderToggleButton(id, isActive) {
+            const backgroundClass = isActive ? 'bg-indigo-600' : 'bg-gray-300';
+            const dotTranslateClass = isActive ? 'translate-x-[20px]' : 'translate-x-[2px]';
+
+            return `
+                <button type="button"
+                        class="toggle-active relative w-10 h-[22px] rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${backgroundClass}"
+                        data-id="${id}"
+                        role="switch"
+                        aria-checked="${isActive ? 'true' : 'false'}">
+                    <span class="block w-[18px] h-[18px] bg-white rounded-full shadow-sm transition-transform duration-200 absolute top-[2px] ${dotTranslateClass}"></span>
+                </button>
+            `;
+        }
+
+        function updateToggleCell(row, isActive) {
+            const toggleCell = row.querySelector('.slang-toggle-cell');
+            if (!toggleCell) {
+                return;
+            }
+
+            if (row.dataset.contentStatus === 'pending') {
+                toggleCell.innerHTML = '<span class="text-sm text-gray-400">-</span>';
+
+                return;
+            }
+
+            toggleCell.innerHTML = renderToggleButton(row.dataset.id, isActive);
+        }
+
+        function setToggleButtonState(button, row, isActive) {
+            const dot = button.querySelector('span');
+            if (!dot) {
+                return;
+            }
+
+            row.dataset.isActive = isActive ? '1' : '0';
+
+            if (isActive) {
+                button.classList.remove('bg-gray-300');
+                button.classList.add('bg-indigo-600');
+                dot.classList.remove('translate-x-[2px]');
+                dot.classList.add('translate-x-[20px]');
+                button.setAttribute('aria-checked', 'true');
+            } else {
+                button.classList.remove('bg-indigo-600');
+                button.classList.add('bg-gray-300');
+                dot.classList.remove('translate-x-[20px]');
+                dot.classList.add('translate-x-[2px]');
+                button.setAttribute('aria-checked', 'false');
+            }
+
+            updateRowVisualState(row);
+        }
+
+        function removeAiReviewButtons(row) {
+            row.querySelector('.approve-ai-action')?.remove();
+            row.querySelector('.reject-ai-action')?.remove();
+        }
+
+        function shouldRemoveRowFromFilteredList(nextStatus) {
+            return Boolean(currentContentStatusFilter) && currentContentStatusFilter !== nextStatus;
         }
 
         // === 검색 debounce ===
@@ -441,45 +555,46 @@
         }
 
         // === 활성/비활성 토글 ===
-        document.querySelectorAll('.toggle-active').forEach(toggle => {
-            toggle.addEventListener('click', function () {
-                const id = this.dataset.id;
-                const btn = this;
-                const row = btn.closest('.slang-item');
-                const dot = btn.querySelector('span');
+        function handleToggleRequest(button) {
+            if (button.disabled) {
+                return;
+            }
 
-                fetch(`/admin/slangs/${id}/toggle`, {
-                    method: 'PATCH',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        if (data.is_active) {
-                            btn.classList.remove('bg-gray-300');
-                            btn.classList.add('bg-indigo-600');
-                            dot.classList.remove('translate-x-[2px]');
-                            dot.classList.add('translate-x-[20px]');
-                            row.classList.remove('bg-gray-50', 'opacity-60');
-                            btn.setAttribute('aria-checked', 'true');
-                        } else {
-                            btn.classList.remove('bg-indigo-600');
-                            btn.classList.add('bg-gray-300');
-                            dot.classList.remove('translate-x-[20px]');
-                            dot.classList.add('translate-x-[2px]');
-                            row.classList.add('bg-gray-50', 'opacity-60');
-                            btn.setAttribute('aria-checked', 'false');
-                        }
-                        showToast(data.message, 'success');
-                    }
-                })
-                .catch(() => {
-                    showToast('상태 변경에 실패했습니다.', 'error');
-                });
+            const id = button.dataset.id;
+            const row = button.closest('.slang-item');
+            button.disabled = true;
+
+            fetch(`/admin/slangs/${id}/toggle`, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || '상태 변경에 실패했습니다.');
+                }
+
+                setToggleButtonState(button, row, data.is_active);
+                showToast(data.message, 'success');
+            })
+            .catch((error) => {
+                showToast(error.message || '상태 변경에 실패했습니다.', 'error');
+            })
+            .finally(() => {
+                button.disabled = false;
             });
+        }
+
+        document.addEventListener('click', function (event) {
+            const toggleButton = event.target.closest('.toggle-active');
+            if (!toggleButton) {
+                return;
+            }
+
+            handleToggleRequest(toggleButton);
         });
 
         // === 삭제 모달 ===
@@ -577,6 +692,18 @@
         window.approveSlang = function (id, korean) {
             if (!confirm(`'${korean}' 콘텐츠를 승인하시겠습니까?`)) return;
 
+            const row = document.querySelector(`.slang-item[data-id="${id}"]`);
+            const approveButton = row?.querySelector('.approve-ai-action');
+            const rejectButton = row?.querySelector('.reject-ai-action');
+
+            if (approveButton) {
+                approveButton.disabled = true;
+            }
+
+            if (rejectButton) {
+                rejectButton.disabled = true;
+            }
+
             fetch(`/admin/slangs/${id}/approve`, {
                 method: 'PATCH',
                 headers: {
@@ -586,15 +713,36 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    showToast(data.message, 'success');
-                    setTimeout(() => location.reload(), 500);
-                } else {
-                    showToast(data.message || '승인에 실패했습니다.', 'error');
+                if (!data.success) {
+                    throw new Error(data.message || '승인에 실패했습니다.');
                 }
+
+                if (row) {
+                    if (shouldRemoveRowFromFilteredList('approved')) {
+                        row.remove();
+                    } else {
+                        row.dataset.contentStatus = 'approved';
+                        row.dataset.isActive = '1';
+                        updateStatusBadge(row, 'approved');
+                        updateToggleCell(row, true);
+                        removeAiReviewButtons(row);
+                        updateRowVisualState(row);
+                    }
+                }
+
+                showToast(data.message, 'success');
             })
-            .catch(() => {
-                showToast('승인에 실패했습니다.', 'error');
+            .catch((error) => {
+                showToast(error.message || '승인에 실패했습니다.', 'error');
+            })
+            .finally(() => {
+                if (approveButton) {
+                    approveButton.disabled = false;
+                }
+
+                if (rejectButton) {
+                    rejectButton.disabled = false;
+                }
             });
         };
 

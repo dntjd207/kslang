@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Category;
 use App\Models\Slang;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -52,14 +53,194 @@ class SlangAutoFillService
         $prompt = $this->buildPrompt($slang->korean, $categories);
         $schema = $this->buildResponseSchema();
 
-        $response = $this->geminiService->generate($prompt, $schema, 'MEDIUM');
-        $data = $response->json();
-
-        if (! $data) {
-            throw new \RuntimeException("Gemini 응답을 JSON으로 파싱할 수 없습니다: {$response->text}");
-        }
+        $data = $this->generateStructuredData($prompt, $schema);
 
         return $this->applyGeneratedData($slang, $data);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array{english_description: string, korean_description: string}
+     */
+    public function regenerateDescriptions(Slang $slang, array $context = []): array
+    {
+        $slangContext = $this->buildSlangContext($slang, $context);
+
+        $prompt = <<<PROMPT
+당신은 한국어 욕설/슬랭 사전 편집자입니다.
+아래 표현의 설명 섹션만 다시 작성해주세요.
+
+## 대상 단어
+{$slangContext['korean']}
+
+## 참고 정보
+- pronunciation: {$slangContext['pronunciation']}
+- level: {$slangContext['level']}
+- usage_frequency: {$slangContext['usage_frequency']}
+- current english_description: {$slangContext['english_description']}
+- current korean_description: {$slangContext['korean_description']}
+- current usage_context: {$slangContext['usage_context']}
+- current english_usage_context: {$slangContext['english_usage_context']}
+
+## 작성 규칙
+1. english_description: 영어 설명 2~3문장
+2. korean_description: 한국어 설명 2~3문장
+3. 두 설명은 같은 의미와 뉘앙스를 담아야 합니다.
+4. 의미, 감정 톤, 문화적 맥락을 자연스럽게 반영해주세요.
+5. JSON만 반환해주세요.
+PROMPT;
+
+        $data = $this->generateStructuredData($prompt, [
+            'type' => 'OBJECT',
+            'properties' => [
+                'english_description' => [
+                    'type' => 'STRING',
+                    'description' => 'Detailed English description (2-3 sentences)',
+                ],
+                'korean_description' => [
+                    'type' => 'STRING',
+                    'description' => 'Detailed Korean description (2-3 sentences)',
+                ],
+            ],
+            'required' => ['english_description', 'korean_description'],
+        ]);
+
+        return [
+            'english_description' => trim((string) ($data['english_description'] ?? '')),
+            'korean_description' => trim((string) ($data['korean_description'] ?? '')),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array{usage_context: string, english_usage_context: string}
+     */
+    public function regenerateUsageContext(Slang $slang, array $context = []): array
+    {
+        $slangContext = $this->buildSlangContext($slang, $context);
+
+        $prompt = <<<PROMPT
+당신은 한국어 욕설/슬랭 사전 편집자입니다.
+아래 표현의 사용 상황 섹션만 다시 작성해주세요.
+
+## 대상 단어
+{$slangContext['korean']}
+
+## 참고 정보
+- pronunciation: {$slangContext['pronunciation']}
+- level: {$slangContext['level']}
+- usage_frequency: {$slangContext['usage_frequency']}
+- english_description: {$slangContext['english_description']}
+- korean_description: {$slangContext['korean_description']}
+
+## 작성 규칙
+1. usage_context: 한국어 사용 상황 설명 2~3문장
+2. english_usage_context: usage_context의 자연스러운 영어 번역 2~3문장
+3. 두 문장은 같은 상황과 뉘앙스를 반영해야 합니다.
+4. 실제 사용되는 장면, 감정, 대화 맥락이 드러나게 작성해주세요.
+5. JSON만 반환해주세요.
+PROMPT;
+
+        $data = $this->generateStructuredData($prompt, [
+            'type' => 'OBJECT',
+            'properties' => [
+                'usage_context' => [
+                    'type' => 'STRING',
+                    'description' => 'Context and situations where the word is commonly used in Korean (2-3 sentences)',
+                ],
+                'english_usage_context' => [
+                    'type' => 'STRING',
+                    'description' => 'Natural English translation of usage_context (2-3 sentences)',
+                ],
+            ],
+            'required' => ['usage_context', 'english_usage_context'],
+        ]);
+
+        return [
+            'usage_context' => trim((string) ($data['usage_context'] ?? '')),
+            'english_usage_context' => trim((string) ($data['english_usage_context'] ?? '')),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array{examples: array<int, array{korean_example: string, english_example: string}>}
+     */
+    public function generateAdditionalExamples(Slang $slang, array $context = [], int $count = 3): array
+    {
+        $slangContext = $this->buildSlangContext($slang, $context);
+        $existingExamplesText = $this->formatExamplesForPrompt($slangContext['examples']);
+
+        $prompt = <<<PROMPT
+당신은 한국어 욕설/슬랭 사전 편집자입니다.
+아래 표현에 대한 새로운 사용 예문 {$count}개를 추가로 작성해주세요.
+
+## 대상 단어
+{$slangContext['korean']}
+
+## 참고 정보
+- pronunciation: {$slangContext['pronunciation']}
+- level: {$slangContext['level']}
+- usage_frequency: {$slangContext['usage_frequency']}
+- english_description: {$slangContext['english_description']}
+- korean_description: {$slangContext['korean_description']}
+- usage_context: {$slangContext['usage_context']}
+- english_usage_context: {$slangContext['english_usage_context']}
+
+## 기존 예문
+{$existingExamplesText}
+
+## 작성 규칙
+1. 정확히 {$count}개의 새로운 예문을 작성해주세요.
+2. 기존 예문과 표현이나 상황이 최대한 겹치지 않게 해주세요.
+3. 각 예문은 korean_example, english_example을 함께 작성해주세요.
+4. 한국어 예문은 실제 대화처럼 자연스럽게, 영어 예문은 의미가 맞는 자연스러운 번역으로 작성해주세요.
+5. JSON만 반환해주세요.
+PROMPT;
+
+        $data = $this->generateStructuredData($prompt, [
+            'type' => 'OBJECT',
+            'properties' => [
+                'examples' => [
+                    'type' => 'ARRAY',
+                    'description' => "Exactly {$count} additional examples",
+                    'items' => [
+                        'type' => 'OBJECT',
+                        'properties' => [
+                            'korean_example' => [
+                                'type' => 'STRING',
+                                'description' => 'Example sentence in Korean',
+                            ],
+                            'english_example' => [
+                                'type' => 'STRING',
+                                'description' => 'English translation of the example',
+                            ],
+                        ],
+                        'required' => ['korean_example', 'english_example'],
+                    ],
+                ],
+            ],
+            'required' => ['examples'],
+        ]);
+
+        $examples = collect($data['examples'] ?? [])
+            ->filter(fn ($example) => is_array($example))
+            ->map(function (array $example): array {
+                return [
+                    'korean_example' => trim((string) ($example['korean_example'] ?? '')),
+                    'english_example' => trim((string) ($example['english_example'] ?? '')),
+                ];
+            })
+            ->filter(function (array $example): bool {
+                return $example['korean_example'] !== '' && $example['english_example'] !== '';
+            })
+            ->take($count)
+            ->values()
+            ->all();
+
+        return [
+            'examples' => $examples,
+        ];
     }
 
     private function buildPrompt(string $koreanWord, array $existingCategories): string
@@ -169,6 +350,92 @@ PROMPT;
                 'examples',
             ],
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $responseSchema
+     * @return array<string, mixed>
+     */
+    private function generateStructuredData(string $prompt, array $responseSchema): array
+    {
+        $response = $this->geminiService->generate($prompt, $responseSchema, 'MEDIUM');
+        $data = $response->json();
+
+        if (! $data) {
+            throw new \RuntimeException("Gemini 응답을 JSON으로 파싱할 수 없습니다: {$response->text}");
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array{
+     *     korean: string,
+     *     pronunciation: string,
+     *     english_description: string,
+     *     korean_description: string,
+     *     level: string,
+     *     usage_frequency: string,
+     *     usage_context: string,
+     *     english_usage_context: string,
+     *     examples: Collection<int, array{korean_example: string, english_example: string}>
+     * }
+     */
+    private function buildSlangContext(Slang $slang, array $context): array
+    {
+        $currentExamples = collect($context['examples'] ?? $slang->examples()->get(['korean_example', 'english_example'])->toArray())
+            ->filter(fn ($example) => is_array($example))
+            ->map(function (array $example): array {
+                return [
+                    'korean_example' => trim((string) ($example['korean_example'] ?? '')),
+                    'english_example' => trim((string) ($example['english_example'] ?? '')),
+                ];
+            })
+            ->filter(function (array $example): bool {
+                return $example['korean_example'] !== '' || $example['english_example'] !== '';
+            })
+            ->values();
+
+        return [
+            'korean' => $this->resolveContextValue($context, 'korean', $slang->korean),
+            'pronunciation' => $this->resolveContextValue($context, 'pronunciation', $slang->pronunciation),
+            'english_description' => $this->resolveContextValue($context, 'english_description', $slang->english_description),
+            'korean_description' => $this->resolveContextValue($context, 'korean_description', $slang->korean_description),
+            'level' => (string) ($context['level'] ?? $slang->level),
+            'usage_frequency' => $this->resolveContextValue($context, 'usage_frequency', $slang->usage_frequency),
+            'usage_context' => $this->resolveContextValue($context, 'usage_context', $slang->usage_context),
+            'english_usage_context' => $this->resolveContextValue($context, 'english_usage_context', $slang->english_usage_context),
+            'examples' => $currentExamples,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function resolveContextValue(array $context, string $key, string $fallback): string
+    {
+        $value = $context[$key] ?? $fallback;
+
+        return trim((string) $value);
+    }
+
+    /**
+     * @param  Collection<int, array{korean_example: string, english_example: string}>  $examples
+     */
+    private function formatExamplesForPrompt(Collection $examples): string
+    {
+        if ($examples->isEmpty()) {
+            return '(현재 입력된 예문 없음)';
+        }
+
+        return $examples
+            ->map(function (array $example, int $index): string {
+                $number = $index + 1;
+
+                return "{$number}. 한국어: {$example['korean_example']} / 영어: {$example['english_example']}";
+            })
+            ->implode("\n");
     }
 
     /**

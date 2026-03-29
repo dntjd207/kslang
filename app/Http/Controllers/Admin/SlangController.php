@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\QuickStoreSlangRequest;
+use App\Http\Requests\Admin\RegenerateSlangSectionRequest;
 use App\Http\Requests\Admin\ReorderSlangRequest;
 use App\Http\Requests\Admin\StoreSlangRequest;
 use App\Http\Requests\Admin\UpdateSlangRequest;
@@ -282,6 +283,40 @@ class SlangController extends Controller
         return response()->json([
             'success' => true,
             'message' => "'{$slang->korean}' 콘텐츠가 반려되었습니다. 다음 자동 생성 시 재시도됩니다.",
+        ]);
+    }
+
+    /**
+     * 편집 폼의 특정 섹션만 AI로 다시 생성하여 JSON으로 반환.
+     */
+    public function regenerateSection(RegenerateSlangSectionRequest $request, Slang $slang): JsonResponse
+    {
+        $validated = $request->validated();
+
+        try {
+            $data = match ($validated['section']) {
+                'descriptions' => $this->autoFillService->regenerateDescriptions($slang, $validated),
+                'usage_context' => $this->autoFillService->regenerateUsageContext($slang, $validated),
+                'examples' => $this->autoFillService->generateAdditionalExamples($slang, $validated, 3),
+            };
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'AI 재생성에 실패했습니다. 잠시 후 다시 시도해주세요.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'section' => $validated['section'],
+            'data' => $data,
+            'message' => match ($validated['section']) {
+                'descriptions' => '설명이 다시 생성되었습니다.',
+                'usage_context' => '사용 상황이 다시 생성되었습니다.',
+                'examples' => '예문 3개가 추가 생성되었습니다.',
+            },
         ]);
     }
 }
