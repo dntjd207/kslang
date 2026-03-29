@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ApiPlaygroundController;
 use App\Http\Controllers\Admin\AppSettingController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -48,5 +49,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('app-settings', [AppSettingController::class, 'edit'])->name('app-settings.edit');
         Route::put('app-settings', [AppSettingController::class, 'update'])->name('app-settings.update');
+
+        Route::get('api-playground', [ApiPlaygroundController::class, 'index'])->name('api-playground.index');
+        Route::post('api-playground/request', [ApiPlaygroundController::class, 'execute'])->name('api-playground.execute');
     });
 });

@@ -100,7 +100,7 @@ it('regenerates descriptions without persisting them immediately', function () {
         'level' => 1,
         'usage_frequency' => 'Common',
         'usage_context' => '온라인에서 억울함을 표현할 때 주로 쓴다.',
-        'english_usage_context' => 'It is mainly used online when someone feels unfairly judged.',
+        'english_usage_context' => null,
         'sort_order' => 0,
         'is_active' => true,
         'content_status' => Slang::STATUS_COMPLETE,
@@ -129,6 +129,7 @@ it('regenerates descriptions without persisting them immediately', function () {
             ->withArgs(function (string $prompt, array $schema, string $thinkingLevel): bool {
                 expect($prompt)->toContain('current english_description: Original English description.')
                     ->and($prompt)->toContain('current usage_context: 온라인에서 억울함을 표현할 때 주로 쓴다.')
+                    ->and($prompt)->toContain('current english_usage_context: ')
                     ->and(data_get($schema, 'required'))->toBe(['english_description', 'korean_description'])
                     ->and($thinkingLevel)->toBe('MEDIUM');
 
@@ -141,7 +142,6 @@ it('regenerates descriptions without persisting them immediately', function () {
         'english_description' => 'Original English description.',
         'korean_description' => '기존 한글 설명이다.',
         'usage_context' => '온라인에서 억울함을 표현할 때 주로 쓴다.',
-        'english_usage_context' => 'It is mainly used online when someone feels unfairly judged.',
     ]);
 
     expect($result)->toBe([

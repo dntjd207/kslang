@@ -19,7 +19,8 @@
 - `app/Console/Commands/AutoFillSlangsCommand.php` — `slang:auto-fill` Artisan 커맨드
 - `routes/console.php` — 5분 주기 스케줄 등록
 - `app/Http/Requests/Admin/QuickStoreSlangRequest.php` — 빠른 등록 유효성 검증
-- `app/Http/Controllers/Admin/SlangController.php` — quickStore, approve, reject 메서드 추가
+- `app/Http/Requests/Admin/RegenerateSlangSectionRequest.php` — 수정 화면 AI 부분 재생성 요청 검증
+- `app/Http/Controllers/Admin/SlangController.php` — quickStore, approve, reject, regenerateSection 메서드 추가
 - `app/Models/Slang.php` — content_status 필드, apiVisible 스코프 추가
 
 ### 마이그레이션
@@ -27,6 +28,9 @@
 
 ### 프론트엔드
 - `resources/views/admin/slangs/index.blade.php` — 빠른 등록 모달, 승인/반려 버튼, 상태 뱃지, 상태 필터 탭
+- `resources/views/admin/slangs/_form.blade.php` — 설명/사용 상황 AI 재생성 버튼
+- `resources/views/admin/slangs/_examples.blade.php` — AI 예문 3개 추가 버튼
+- `resources/views/admin/slangs/_form_scripts.blade.php` — 섹션별 AJAX 재생성 후 폼 값 교체/추가
 
 ## 핵심 로직
 
@@ -52,6 +56,12 @@ pending → (cron: Gemini API 호출) → generated → (관리자 승인) → a
 DB 구조에 맞는 JSON 스키마를 Gemini에 전달하여 구조화된 응답을 받음:
 - pronunciation, english_description, korean_description, level, usage_frequency, usage_context, english_usage_context, examples, suggested_categories
 
+### 수정 화면 AI 부분 재생성
+- 설명 재생성: `english_description`, `korean_description`만 다시 생성
+- 사용 상황 재생성: `usage_context`, `english_usage_context`를 함께 다시 생성
+- 예문 추가 생성: 기존 예문을 참고해 새 예문 3개를 추가 생성
+- 재생성 결과는 즉시 DB에 저장하지 않고 수정 폼에만 반영하여 관리자 검토 후 저장
+
 ### 카테고리 자동 매칭
 - 프롬프트에 현재 등록된 카테고리 목록을 포함
 - Gemini가 suggested_categories로 적합한 카테고리를 추천
@@ -71,3 +81,4 @@ DB 구조에 맞는 JSON 스키마를 Gemini에 전달하여 구조화된 응답
 |------|----------|------|
 | 2026-03-01 | F-011 AI 자동 콘텐츠 생성 기능 구현 | 초기 구현 |
 | 2026-03-29 | 사용 상황 영어 번역 자동 생성 추가 | Gemini 프롬프트/responseSchema에 `english_usage_context` 반영 |
+| 2026-03-29 | 수정 화면 AI 섹션 재생성 추가 | 설명/사용 상황 재생성, 예문 3개 추가 생성, 저장 전 검토 방식 |

@@ -16,6 +16,7 @@ use App\Services\SlangService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class SlangController extends Controller
@@ -300,6 +301,11 @@ class SlangController extends Controller
                 'examples' => $this->autoFillService->generateAdditionalExamples($slang, $validated, 3),
             };
         } catch (\Throwable $e) {
+            Log::error('Slang section regeneration failed.', [
+                'slang_id' => $slang->id,
+                'section' => $validated['section'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
             report($e);
 
             return response()->json([

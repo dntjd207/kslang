@@ -275,3 +275,34 @@
 ### 주요 결정 사항
 - 기존 `usage_context`는 한글 설명으로 유지하고, 영어 번역은 별도 `english_usage_context` 컬럼으로 분리
 - AI 자동 생성 시 영어 사용 상황은 별도 자유 생성값이 아니라 한글 사용 상황의 자연스러운 영어 번역으로 요청
+
+---
+
+### 작업 내용
+- 관리자 API Playground 화면 추가
+  - `ApiPlaygroundController`, `ExecuteApiPlaygroundRequest`, `ApiPlaygroundService` 생성
+  - `/admin/api-playground` 화면과 `/admin/api-playground/request` 프록시 실행 라우트 추가
+  - 엔드포인트 목록, path/query 파라미터 입력, cURL 예시, 상태 코드/헤더/본문/응답 시간 표시 UI 구현
+  - 사이드바 메뉴에 API Playground 진입 링크 추가
+  - Pest 테스트 3건 추가: 화면 접근, 프록시 요청, 필수 path 파라미터 검증
+  - `docs/README.md`, `docs/app-api/SPECS.md`에 관리자 API Playground 내용 반영
+
+### 주요 결정 사항
+- 브라우저에 `APP_API_KEY`를 노출하지 않기 위해 관리자 화면에서는 서버 측 프록시가 현재 도메인의 `/api/v1/*`에 실제 HTTP 요청을 보내도록 구성
+- 엔드포인트 정의를 `ApiPlaygroundService`에서 일원화하여 화면 렌더링, 요청 검증, cURL 미리보기 생성을 같은 메타데이터로 처리
+
+---
+
+### 작업 내용
+- 슬랭 수정 화면 AI 부분 재생성 기능 추가
+  - 설명, 사용 상황, 예문 섹션별 AI 재생성 엔드포인트 추가
+  - 설명 재생성 시 영어/한글 설명을 함께 갱신하도록 구현
+  - 사용 상황 재생성 시 한글/영어 사용 상황을 함께 갱신하도록 구현
+  - 예문 재생성 시 기존 예문을 유지한 채 AI 예문 3개를 추가하도록 구현
+  - 재생성 결과는 DB 즉시 저장 대신 수정 폼에만 반영 후 관리자 검토/저장 방식으로 처리
+  - null `english_usage_context`로 인해 재생성 실패하던 케이스를 null-safe 처리로 보완
+  - Pest 테스트 추가 및 `phpunit.xml`에 테스트용 `APP_KEY` 설정
+
+### 주요 결정 사항
+- AI 부분 재생성은 기존 저장 데이터를 덮어쓰지 않고, 수정 폼의 현재 입력값을 기준으로 결과만 반환해 검토 후 저장하도록 설계
+- 기존 데이터 호환성을 위해 `english_usage_context`는 null이어도 재생성 프롬프트 빌드가 가능해야 함

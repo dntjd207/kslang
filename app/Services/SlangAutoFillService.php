@@ -413,7 +413,7 @@ PROMPT;
     /**
      * @param  array<string, mixed>  $context
      */
-    private function resolveContextValue(array $context, string $key, string $fallback): string
+    private function resolveContextValue(array $context, string $key, ?string $fallback): string
     {
         $value = $context[$key] ?? $fallback;
 
