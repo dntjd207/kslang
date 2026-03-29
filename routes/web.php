@@ -42,8 +42,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('slangs/{slang}/reject', [SlangController::class, 'reject'])->name('slangs.reject');
         Route::delete('slangs/{slang}/audio', [SlangController::class, 'destroyAudio'])->name('slangs.destroyAudio');
 
-        Route::get('pages/{slug}/edit', [PageController::class, 'edit'])->name('pages.edit')->where('slug', 'privacy|terms');
-        Route::put('pages/{slug}', [PageController::class, 'update'])->name('pages.update')->where('slug', 'privacy|terms');
+        Route::get('pages/{slug}/edit', [PageController::class, 'edit'])->name('pages.edit')->where('slug', 'terms');
+        Route::put('pages/{slug}', [PageController::class, 'update'])->name('pages.update')->where('slug', 'terms');
 
         Route::get('app-settings', [AppSettingController::class, 'edit'])->name('app-settings.edit');
         Route::put('app-settings', [AppSettingController::class, 'update'])->name('app-settings.update');

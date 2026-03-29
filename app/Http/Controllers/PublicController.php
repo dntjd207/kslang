@@ -10,17 +10,16 @@ class PublicController extends Controller
 {
     public function privacy(Request $request): View
     {
-        return $this->showPage('privacy', $request);
+        $layout = $request->boolean('app')
+            ? 'layouts.webview'
+            : 'layouts.public';
+
+        return view('public.privacy', compact('layout'));
     }
 
     public function terms(Request $request): View
     {
-        return $this->showPage('terms', $request);
-    }
-
-    private function showPage(string $slug, Request $request): View
-    {
-        $page = Page::findBySlugOrFail($slug);
+        $page = Page::findBySlugOrFail('terms');
 
         $layout = $request->boolean('app')
             ? 'layouts.webview'
