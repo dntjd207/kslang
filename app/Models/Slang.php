@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,6 +26,7 @@ class Slang extends Model
         'level',
         'usage_frequency',
         'usage_context',
+        'english_usage_context',
         'audio_file',
         'sort_order',
         'is_active',
@@ -44,8 +46,8 @@ class Slang extends Model
      * API에 노출 가능한 슬랭만 조회하는 스코프.
      * content_status가 'complete' 또는 'approved'이고, is_active가 true인 것만 반환.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<self>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<self>
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeApiVisible($query)
     {

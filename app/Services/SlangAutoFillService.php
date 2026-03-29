@@ -59,7 +59,7 @@ class SlangAutoFillService
             throw new \RuntimeException("Gemini 응답을 JSON으로 파싱할 수 없습니다: {$response->text}");
         }
 
-        return $this->applyGeneratedData($slang, $data, $categories);
+        return $this->applyGeneratedData($slang, $data);
     }
 
     private function buildPrompt(string $koreanWord, array $existingCategories): string
@@ -82,8 +82,9 @@ class SlangAutoFillService
 4. level: 강도 레벨 (1=순한맛, 2=중간맛, 3=매운맛, 4=극한맛)
 5. usage_frequency: Usage frequency (must be one of "Common", "Occasional", "Rare")
 6. usage_context: 주로 사용되는 상황·맥락 설명 (한국어, 2~3문장)
-7. examples: 사용 예문 2~4개 (각각 korean_example과 english_example)
-8. suggested_categories: 현재 등록된 카테고리 중 적합한 것을 선택 (여러 개 가능)
+7. english_usage_context: usage_context의 자연스러운 영어 번역 (영어, 2~3문장)
+8. examples: 사용 예문 2~4개 (각각 korean_example과 english_example)
+9. suggested_categories: 현재 등록된 카테고리 중 적합한 것을 선택 (여러 개 가능)
 
 ## 현재 등록된 카테고리
 {$categoryList}
@@ -127,6 +128,10 @@ PROMPT;
                     'type' => 'STRING',
                     'description' => 'Context and situations where the word is commonly used (Korean, 2-3 sentences)',
                 ],
+                'english_usage_context' => [
+                    'type' => 'STRING',
+                    'description' => 'Natural English translation of usage_context (2-3 sentences)',
+                ],
                 'examples' => [
                     'type' => 'ARRAY',
                     'description' => '2-4 usage examples',
@@ -160,6 +165,7 @@ PROMPT;
                 'level',
                 'usage_frequency',
                 'usage_context',
+                'english_usage_context',
                 'examples',
             ],
         ];
@@ -169,9 +175,8 @@ PROMPT;
      * Gemini 응답 데이터를 슬랭에 적용.
      *
      * @param  array<string, mixed>  $data
-     * @param  array<int, string>  $existingCategories
      */
-    private function applyGeneratedData(Slang $slang, array $data, array $existingCategories): Slang
+    private function applyGeneratedData(Slang $slang, array $data): Slang
     {
         return DB::transaction(function () use ($slang, $data) {
             $level = max(1, min(4, (int) ($data['level'] ?? 1)));
@@ -188,6 +193,7 @@ PROMPT;
                 'level' => $level,
                 'usage_frequency' => $frequency,
                 'usage_context' => $data['usage_context'] ?? '',
+                'english_usage_context' => $data['english_usage_context'] ?? '',
                 'content_status' => Slang::STATUS_GENERATED,
                 'is_active' => false,
             ]);

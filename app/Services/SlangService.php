@@ -31,6 +31,7 @@ class SlangService
                 'level' => $data['level'],
                 'usage_frequency' => $data['usage_frequency'],
                 'usage_context' => $data['usage_context'],
+                'english_usage_context' => $data['english_usage_context'],
                 'sort_order' => $maxSortOrder + 1,
                 'is_active' => $data['is_active'] ?? true,
                 'audio_file' => $audioPath,
@@ -68,6 +69,7 @@ class SlangService
                 'level' => $data['level'],
                 'usage_frequency' => $data['usage_frequency'],
                 'usage_context' => $data['usage_context'],
+                'english_usage_context' => $data['english_usage_context'],
                 'is_active' => $data['is_active'] ?? $slang->is_active,
                 'audio_file' => $audioFile,
             ]);

@@ -19,6 +19,7 @@ class SlangResource extends JsonResource
             'level_label' => $this->level_label,
             'usage_frequency' => $this->usage_frequency,
             'usage_context' => $this->usage_context,
+            'english_usage_context' => $this->english_usage_context,
             'audio_url' => $this->audio_url,
             'categories' => SlangCategoryResource::collection($this->whenLoaded('categories')),
             'examples' => SlangExampleResource::collection($this->whenLoaded('examples')),

@@ -258,3 +258,20 @@
 - AI 생성 시 is_active=false로 설정하여 승인 전 노출 방지 이중 안전장치
 - 반려 시 기존 AI 콘텐츠 초기화 후 pending으로 되돌려 자동 재생성 유도
 - Cron 한 번에 최대 5건 처리로 API 부하 분산
+
+---
+
+## 2026-03-29
+
+### 작업 내용
+- 사용 상황 영어 번역 필드 추가
+  - `slangs` 테이블에 `english_usage_context` 컬럼 추가 마이그레이션 생성
+  - `Slang` 모델, `SlangService`, 생성/수정 FormRequest에 영어 사용 상황 필드 반영
+  - 관리자 슬랭 폼에 `사용 상황 영어 번역` 입력란 추가
+  - `SlangAutoFillService` 프롬프트/responseSchema를 확장하여 AI 생성 시 `english_usage_context`도 함께 저장
+  - `SlangResource`와 검색 로직에 영어 사용 상황 필드 반영
+  - Pest 테스트 2건 추가: AI 자동 생성 반영, API 응답 필드 노출
+
+### 주요 결정 사항
+- 기존 `usage_context`는 한글 설명으로 유지하고, 영어 번역은 별도 `english_usage_context` 컬럼으로 분리
+- AI 자동 생성 시 영어 사용 상황은 별도 자유 생성값이 아니라 한글 사용 상황의 자연스러운 영어 번역으로 요청

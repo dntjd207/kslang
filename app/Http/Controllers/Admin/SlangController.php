@@ -36,7 +36,8 @@ class SlangController extends Controller
                     ->orWhere('pronunciation', 'like', "%{$search}%")
                     ->orWhere('english_description', 'like', "%{$search}%")
                     ->orWhere('korean_description', 'like', "%{$search}%")
-                    ->orWhere('usage_context', 'like', "%{$search}%");
+                    ->orWhere('usage_context', 'like', "%{$search}%")
+                    ->orWhere('english_usage_context', 'like', "%{$search}%");
             });
         }
 
@@ -206,6 +207,7 @@ class SlangController extends Controller
                 'level' => 1,
                 'usage_frequency' => 'Occasional',
                 'usage_context' => '',
+                'english_usage_context' => '',
                 'sort_order' => ++$maxSortOrder,
                 'is_active' => false,
                 'content_status' => Slang::STATUS_PENDING,
@@ -272,6 +274,7 @@ class SlangController extends Controller
             'level' => 1,
             'usage_frequency' => 'Occasional',
             'usage_context' => '',
+            'english_usage_context' => '',
             'content_status' => Slang::STATUS_PENDING,
             'is_active' => false,
         ]);

@@ -92,16 +92,30 @@
                     </div>
                 </div>
 
-                <div class="mb-4">
-                    <label for="usage_context" class="block text-sm font-medium text-gray-700 mb-1">
-                        사용 상황 <span class="text-red-500">*</span>
-                    </label>
-                    <textarea name="usage_context" id="usage_context" rows="2"
-                              placeholder="사용 상황을 입력하세요"
-                              class="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-y {{ $errors->has('usage_context') ? 'border-red-500' : 'border-gray-300' }}">{{ old('usage_context', $isEdit ? $slang->usage_context : '') }}</textarea>
-                    @error('usage_context')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label for="usage_context" class="block text-sm font-medium text-gray-700 mb-1">
+                            사용 상황 (한글) <span class="text-red-500">*</span>
+                        </label>
+                        <textarea name="usage_context" id="usage_context" rows="3"
+                                  placeholder="사용 상황을 입력하세요"
+                                  class="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-y {{ $errors->has('usage_context') ? 'border-red-500' : 'border-gray-300' }}">{{ old('usage_context', $isEdit ? $slang->usage_context : '') }}</textarea>
+                        @error('usage_context')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="english_usage_context" class="block text-sm font-medium text-gray-700 mb-1">
+                            사용 상황 영어 번역 <span class="text-red-500">*</span>
+                        </label>
+                        <textarea name="english_usage_context" id="english_usage_context" rows="3"
+                                  placeholder="사용 상황 영어 번역을 입력하세요"
+                                  class="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-y {{ $errors->has('english_usage_context') ? 'border-red-500' : 'border-gray-300' }}">{{ old('english_usage_context', $isEdit ? $slang->english_usage_context : '') }}</textarea>
+                        @error('english_usage_context')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
             </div>
         </x-common.card>

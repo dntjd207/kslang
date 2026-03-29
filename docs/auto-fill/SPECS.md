@@ -2,7 +2,7 @@
 
 ## 개요
 
-단어(korean)만 등록하면 5분 주기 cron이 Google Gemini API를 호출하여 나머지 콘텐츠(발음, 설명, 레벨, 빈도, 맥락, 예문, 카테고리)를 자동 생성. 관리자 승인 후에만 API에 노출.
+단어(korean)만 등록하면 5분 주기 cron이 Google Gemini API를 호출하여 나머지 콘텐츠(발음, 설명, 레벨, 빈도, 사용 상황 한/영, 예문, 카테고리)를 자동 생성. 관리자 승인 후에만 API에 노출.
 
 ## Routes
 
@@ -50,7 +50,7 @@ pending → (cron: Gemini API 호출) → generated → (관리자 승인) → a
 
 ### Gemini responseSchema
 DB 구조에 맞는 JSON 스키마를 Gemini에 전달하여 구조화된 응답을 받음:
-- pronunciation, english_description, korean_description, level, usage_frequency, usage_context, examples, suggested_categories
+- pronunciation, english_description, korean_description, level, usage_frequency, usage_context, english_usage_context, examples, suggested_categories
 
 ### 카테고리 자동 매칭
 - 프롬프트에 현재 등록된 카테고리 목록을 포함
@@ -70,3 +70,4 @@ DB 구조에 맞는 JSON 스키마를 Gemini에 전달하여 구조화된 응답
 | 날짜 | 변경 내용 | 비고 |
 |------|----------|------|
 | 2026-03-01 | F-011 AI 자동 콘텐츠 생성 기능 구현 | 초기 구현 |
+| 2026-03-29 | 사용 상황 영어 번역 자동 생성 추가 | Gemini 프롬프트/responseSchema에 `english_usage_context` 반영 |

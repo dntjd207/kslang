@@ -104,6 +104,7 @@ GET /slangs
       "level_label": "Extreme",
       "usage_frequency": "매우 높음",
       "usage_context": "분노, 놀람, 강조 등 다양한 상황",
+      "english_usage_context": "Used in situations of anger, surprise, or strong emphasis.",
       "audio_url": "https://{domain}/storage/audio/slangs/example.mp3",
       "categories": [
         {
@@ -199,6 +200,7 @@ GET /slangs/random
     "level_label": "Moderate",
     "usage_frequency": "...",
     "usage_context": "...",
+    "english_usage_context": "...",
     "audio_url": null,
     "categories": [...],
     "examples": [...]
@@ -243,6 +245,7 @@ GET /slangs/daily
     "level_label": "Mild",
     "usage_frequency": "...",
     "usage_context": "...",
+    "english_usage_context": "...",
     "audio_url": "...",
     "categories": [...],
     "examples": [...]
@@ -278,6 +281,7 @@ GET /slangs/{id}
     "level_label": "Extreme",
     "usage_frequency": "...",
     "usage_context": "...",
+    "english_usage_context": "...",
     "audio_url": "https://{domain}/storage/audio/slangs/example.mp3",
     "categories": [
       { "id": 1, "name": "일반 욕설" },
@@ -536,6 +540,7 @@ GET /pages/{slug}
 | `level_label` | string | X | 레벨 영문 라벨 (Mild/Moderate/Strong/Extreme) |
 | `usage_frequency` | string | X | 사용 빈도 |
 | `usage_context` | string | X | 사용 맥락 |
+| `english_usage_context` | string | X | 사용 맥락 영어 번역 |
 | `audio_url` | string | O | 음성 파일 URL (없으면 null) |
 | `categories` | array | X | 소속 카테고리 목록 |
 | `examples` | array | X | 사용 예문 목록 |

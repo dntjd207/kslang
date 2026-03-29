@@ -112,7 +112,8 @@ class SlangController extends Controller
                 $q->where('korean', 'like', "%{$keyword}%")
                     ->orWhere('pronunciation', 'like', "%{$keyword}%")
                     ->orWhere('english_description', 'like', "%{$keyword}%")
-                    ->orWhere('korean_description', 'like', "%{$keyword}%");
+                    ->orWhere('korean_description', 'like', "%{$keyword}%")
+                    ->orWhere('english_usage_context', 'like', "%{$keyword}%");
             })
             ->orderBy('sort_order', 'asc')
             ->paginate($perPage);
