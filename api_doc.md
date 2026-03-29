@@ -89,6 +89,14 @@ GET /slangs
 | 3 | Strong | 매운맛 |
 | 4 | Extreme | 극한맛 |
 
+### Usage Frequency 값
+
+| 값 | 설명 |
+|----|------|
+| `Common` | 자주 사용 |
+| `Occasional` | 가끔 사용 |
+| `Rare` | 드물게 사용 |
+
 ### Response
 
 ```json
@@ -102,7 +110,7 @@ GET /slangs
       "korean_description": "가장 흔하게 사용되는 욕설...",
       "level": 4,
       "level_label": "Extreme",
-      "usage_frequency": "매우 높음",
+      "usage_frequency": "Common",
       "usage_context": "분노, 놀람, 강조 등 다양한 상황",
       "english_usage_context": "Used in situations of anger, surprise, or strong emphasis.",
       "audio_url": "https://{domain}/storage/audio/slangs/example.mp3",
@@ -160,6 +168,7 @@ GET /slangs/search
 - `pronunciation` (발음)
 - `english_description` (영어 설명)
 - `korean_description` (한국어 설명)
+- `english_usage_context` (사용 상황 영어 번역)
 
 ### 주의사항
 
@@ -299,7 +308,7 @@ GET /slangs/{id}
 
 ### 주의사항
 
-- 비활성(`is_active: false`) 슬랭은 404를 반환합니다.
+- 비활성(`is_active: false`)이거나 아직 승인되지 않은 슬랭은 404를 반환합니다.
 - 존재하지 않는 ID도 404를 반환합니다.
 
 ---
@@ -538,8 +547,8 @@ GET /pages/{slug}
 | `korean_description` | string | X | 한국어 설명 |
 | `level` | int | X | 수위 레벨 (1~4) |
 | `level_label` | string | X | 레벨 영문 라벨 (Mild/Moderate/Strong/Extreme) |
-| `usage_frequency` | string | X | 사용 빈도 |
-| `usage_context` | string | X | 사용 맥락 |
+| `usage_frequency` | string | X | 사용 빈도 (`Common`, `Occasional`, `Rare`) |
+| `usage_context` | string | X | 사용 맥락 (한국어) |
 | `english_usage_context` | string | X | 사용 맥락 영어 번역 |
 | `audio_url` | string | O | 음성 파일 URL (없으면 null) |
 | `categories` | array | X | 소속 카테고리 목록 |
