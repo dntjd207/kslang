@@ -32,7 +32,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `routes/web.php` — 라우트 정의
 
 ### 프론트엔드
-- `resources/views/admin/slangs/index.blade.php` — 목록 (검색, 필터, 드래그 정렬, 토글, 삭제 모달)
+- `resources/views/admin/slangs/index.blade.php` — 목록 (전체 목록 표시, 검색, 카테고리 탭/필터, 드래그 정렬, 토글, 삭제 모달)
 - `resources/views/admin/slangs/create.blade.php` — 생성 폼
 - `resources/views/admin/slangs/edit.blade.php` — 수정 폼
 - `resources/views/admin/slangs/_form.blade.php` — 공통 폼 Partial (기본정보 + 카테고리 + 음성 + 예문 include)
@@ -57,9 +57,12 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - **예문 동기화**: 기존 예문 id가 있으면 업데이트, 없으면 신규 생성, 전송되지 않은 기존 예문은 삭제. FormRequest의 `prepareForValidation()`에서 빈 예문 행 사전 필터링
 - **예문 UI**: 예문 섹션을 `_examples.blade.php` + `_example-row.blade.php`로 분리, 필드별 인라인 에러 표시, 반응형(모바일 세로 스택), 드래그 앤 드롭 정렬, 최대 50개 안내, AI 예문 3개 추가 지원
 - **음성 파일**: AudioFileService로 분리. UUID 파일명으로 `storage/app/public/audio/slangs/`에 저장. 드래그 앤 드롭 + 파일 선택 업로드, 클라이언트/서버 유효성 검증(mp3, 5MB), 미리듣기, AJAX 단독 삭제, 교체 시 기존 파일 물리 삭제
+- **목록 표시**: 관리자 목록은 페이지네이션 없이 전체 데이터를 `sort_order` 오름차순으로 조회
 - **검색**: korean, ai_generation_hint, pronunciation, english_description, korean_description, usage_context, english_usage_context 7개 필드 LIKE 검색 (2자 이상)
-- **필터**: 레벨(1~4) + 카테고리(whereHas) + 검색어 조합
+- **필터**: 레벨(1~4) + 콘텐츠 상태 + 카테고리 탭(whereHas) + 검색어 조합
+- **카테고리별 보기**: 카테고리 탭마다 현재 필터 기준 개수를 함께 표시하고, 카테고리 선택 시 해당 카테고리의 슬랭만 즉시 조회
 - **삭제**: CASCADE로 category_slang, slang_examples 자동 삭제 + 음성 파일 물리 삭제
+- **정렬 제한**: 드래그 정렬은 전체 보기에서만 허용하고, 검색/필터가 적용된 상태에서는 목록 조회만 가능
 - **토글/정렬/삭제**: AJAX(Fetch API) + JSON 응답
 
 ## API 엔드포인트
@@ -77,3 +80,4 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-03-29 | 사용 상황 영어 번역 필드 추가 | `english_usage_context` 컬럼, 관리자 입력, API 응답, 검색 확장 |
 | 2026-03-29 | 슬랭 수정 화면 AI 섹션 재생성 추가 | 설명/사용 상황 재생성, 예문 3개 추가 생성, 저장 전 폼 반영 |
 | 2026-03-30 | 상세 등록(단어+설명) 및 AI 참고 설명 편집 추가 | `ai_generation_hint` 저장, AI 프롬프트 반영, 관리 화면 검색/표시 확장 |
+| 2026-03-30 | 슬랭 목록 전체 보기 및 카테고리 탭 추가 | 페이지네이션 제거, 카테고리별 필터 가시성 개선, 필터 상태 정렬 비활성화 |
