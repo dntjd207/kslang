@@ -52,6 +52,8 @@ class UpdateSlangRequest extends FormRequest
             'examples.*.id' => ['nullable', 'integer', 'exists:slang_examples,id'],
             'examples.*.korean_example' => ['required_with:examples.*.english_example', 'nullable', 'string', 'max:500'],
             'examples.*.english_example' => ['required_with:examples.*.korean_example', 'nullable', 'string', 'max:500'],
+            'examples.*.audio_file' => ['nullable', 'string', 'max:500'],
+            'examples.*.audio_disk' => ['nullable', 'string', 'max:50'],
         ];
     }
 
@@ -82,6 +84,8 @@ class UpdateSlangRequest extends FormRequest
             'examples.*.korean_example.max' => '한국어 예문은 500자 이하여야 합니다.',
             'examples.*.english_example.required_with' => '영어 번역을 입력해주세요.',
             'examples.*.english_example.max' => '영어 번역은 500자 이하여야 합니다.',
+            'examples.*.audio_file.max' => '예문 음성 경로가 너무 깁니다.',
+            'examples.*.audio_disk.max' => '예문 음성 디스크 값이 너무 깁니다.',
         ];
     }
 }

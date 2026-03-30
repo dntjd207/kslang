@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\AudioFileService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Storage;
 
 class Slang extends Model
 {
@@ -29,6 +29,7 @@ class Slang extends Model
         'usage_context',
         'english_usage_context',
         'audio_file',
+        'audio_disk',
         'sort_order',
         'is_active',
         'content_status',
@@ -86,11 +87,7 @@ class Slang extends Model
 
     public function getAudioUrlAttribute(): ?string
     {
-        if (! $this->audio_file) {
-            return null;
-        }
-
-        return Storage::disk('public')->url($this->audio_file);
+        return app(AudioFileService::class)->getUrl($this->audio_file, $this->audio_disk);
     }
 
     /**
@@ -98,11 +95,7 @@ class Slang extends Model
      */
     public function hasAudioFile(): bool
     {
-        if (! $this->audio_file) {
-            return false;
-        }
-
-        return Storage::disk('public')->exists($this->audio_file);
+        return app(AudioFileService::class)->exists($this->audio_file, $this->audio_disk);
     }
 
     /**
@@ -111,8 +104,11 @@ class Slang extends Model
     public function deleteAudioFile(): void
     {
         if ($this->audio_file) {
-            Storage::disk('public')->delete($this->audio_file);
-            $this->update(['audio_file' => null]);
+            app(AudioFileService::class)->delete($this->audio_file, $this->audio_disk);
+            $this->update([
+                'audio_file' => null,
+                'audio_disk' => null,
+            ]);
         }
     }
 

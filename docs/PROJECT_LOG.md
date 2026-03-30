@@ -366,3 +366,19 @@
 ### 주요 결정 사항
 - Windows/Herd 환경에서 `public/storage` 링크 부재로 404가 발생할 수 있어 TTS 미리듣기 저장은 기본값을 `s3` 디스크로 전환
 - S3 객체가 public이 아닐 수 있으므로 최근 결과/즉시 재생 링크는 설정에 따라 temporary URL을 사용하도록 설계
+
+---
+
+### 작업 내용
+- 슬랭 수정 화면 Supertone MP3 연동
+  - 슬랭 본문에 `한국어 욕 mp3 생성` 버튼 추가, 현재 입력값 기준 speed 0.8 음성을 생성해 즉시 저장/재생 가능하게 구현
+  - 사용 예문 각 행에 개별 `예문 mp3 생성` 버튼과 플레이어 UI 추가
+  - 저장된 예문은 생성 즉시 DB 저장, 새 예문은 hidden input에 경로를 보관했다가 전체 저장 시 반영하도록 구현
+  - `slangs.audio_disk`, `slang_examples.audio_file`, `slang_examples.audio_disk` 컬럼 추가 마이그레이션 생성
+  - `AudioFileService`를 업로드 + 생성 mp3 공용 서비스로 확장하고, 오디오 기본 저장 디스크를 환경값으로 분리
+  - API Resource에 예문 `audio_url` 추가, 앱에서 추후 바로 재생 URL 사용 가능하도록 준비
+  - Pest 테스트 추가: 슬랭 mp3 생성, 저장된 예문 mp3 생성, 새 예문 행 mp3 생성, API 예문 audio_url 노출
+
+### 주요 결정 사항
+- 기존 `audio_file` 경로만으로는 S3와 public 디스크 혼용 시 구분이 어려워 `audio_disk` 컬럼을 도입하고, 레거시 public 파일은 fallback으로 읽도록 설계
+- 새 예문은 아직 DB row가 없으므로 mp3 파일은 먼저 저장하고, 경로를 폼 hidden input으로 유지한 뒤 전체 저장 시 모델에 연결하도록 처리

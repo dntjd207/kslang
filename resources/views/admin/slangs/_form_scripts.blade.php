@@ -44,39 +44,90 @@ function updateNoExamplesState() {
     noMessage.classList.toggle('hidden', container.querySelectorAll('.example-row').length > 0);
 }
 
+function buildExampleAudioSectionMarkup(index, example = {}) {
+    if (!getSlangId()) {
+        return '';
+    }
+
+    const hasAudio = Boolean(example.audio_file && example.audio_url);
+    const helperText = example.id
+        ? '생성하면 즉시 저장됩니다.'
+        : '새 예문은 생성 후 전체 저장 시 DB에 반영됩니다.';
+
+    return `
+        <div class="rounded-lg border border-gray-200 bg-white p-3">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">예문 mp3</p>
+                    <p class="mt-1 text-xs text-gray-500">${escapeHtml(helperText)}</p>
+                </div>
+                <button
+                    type="button"
+                    class="generate-example-audio inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    data-loading-text="예문 mp3 생성 중..."
+                >
+                    예문 mp3 생성
+                </button>
+            </div>
+
+            <p class="example-audio-empty mt-3 text-xs text-gray-400 ${hasAudio ? 'hidden' : ''}">
+                아직 생성된 예문 mp3가 없습니다.
+            </p>
+
+            <div class="example-audio-player-wrapper mt-3 ${hasAudio ? '' : 'hidden'}">
+                <audio class="example-audio-player w-full" controls preload="metadata" src="${escapeHtml(example.audio_url ?? '')}"></audio>
+            </div>
+        </div>
+    `;
+}
+
 function buildExampleRowMarkup(index, example = {}) {
     const hiddenId = example.id
         ? `<input type="hidden" name="examples[${index}][id]" value="${escapeHtml(example.id)}">`
         : '';
+    const audioFile = escapeHtml(example.audio_file ?? '');
+    const audioDisk = escapeHtml(example.audio_disk ?? '');
 
     return `
-        <span class="drag-handle-example cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 shrink-0 sm:mt-7">
-            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z"/>
-            </svg>
-        </span>
         ${hiddenId}
-        <div class="flex-1 w-full">
-            <label class="block text-sm font-medium text-gray-700 mb-1">한국어 예문</label>
-            <input type="text"
-                   name="examples[${index}][korean_example]"
-                   value="${escapeHtml(example.korean_example ?? '')}"
-                   placeholder="예: 씨발, 또 늦었어!"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+        <input type="hidden" name="examples[${index}][audio_file]" value="${audioFile}">
+        <input type="hidden" name="examples[${index}][audio_disk]" value="${audioDisk}">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-start">
+            <span class="drag-handle-example cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 shrink-0 xl:mt-7">
+                <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z"/>
+                </svg>
+            </span>
+            <div class="min-w-0 flex-1 space-y-3">
+                <div class="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr),minmax(0,1fr),auto]">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">한국어 예문</label>
+                        <input type="text"
+                               name="examples[${index}][korean_example]"
+                               value="${escapeHtml(example.korean_example ?? '')}"
+                               placeholder="예: 씨발, 또 늦었어!"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">영어 번역</label>
+                        <input type="text"
+                               name="examples[${index}][english_example]"
+                               value="${escapeHtml(example.english_example ?? '')}"
+                               placeholder="예: F**k, I'm late again!"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                    </div>
+                    <div class="xl:pt-7">
+                        <button type="button" class="remove-example inline-flex items-center gap-1.5 rounded-lg p-2 text-red-400 transition hover:bg-red-50 hover:text-red-600" title="예문 삭제">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            <span class="text-sm font-medium xl:hidden">삭제</span>
+                        </button>
+                    </div>
+                </div>
+                ${buildExampleAudioSectionMarkup(index, example)}
+            </div>
         </div>
-        <div class="flex-1 w-full">
-            <label class="block text-sm font-medium text-gray-700 mb-1">영어 번역</label>
-            <input type="text"
-                   name="examples[${index}][english_example]"
-                   value="${escapeHtml(example.english_example ?? '')}"
-                   placeholder="예: F**k, I'm late again!"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-        </div>
-        <button type="button" class="remove-example shrink-0 sm:mt-7 p-1 text-red-400 hover:text-red-600 transition" title="예문 삭제">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-        </button>
     `;
 }
 
@@ -92,7 +143,7 @@ function appendExampleRow(example = {}, shouldFocus = false) {
     }
 
     const row = document.createElement('div');
-    row.className = 'example-row flex flex-col sm:flex-row items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200';
+    row.className = 'example-row rounded-lg border border-gray-200 bg-gray-50 p-4';
     row.dataset.index = exampleIndex;
     row.innerHTML = buildExampleRowMarkup(exampleIndex, example);
     container.appendChild(row);
@@ -142,6 +193,14 @@ function reindexExamples() {
         if (hiddenId) {
             hiddenId.name = `examples[${index}][id]`;
         }
+
+        row.querySelectorAll('input[name*="[audio_file]"]').forEach((input) => {
+            input.name = `examples[${index}][audio_file]`;
+        });
+
+        row.querySelectorAll('input[name*="[audio_disk]"]').forEach((input) => {
+            input.name = `examples[${index}][audio_disk]`;
+        });
     });
 
     exampleIndex = document.querySelectorAll('.example-row').length;
@@ -216,6 +275,73 @@ function setButtonLoading(button, isLoading) {
 
     button.disabled = false;
     button.innerHTML = button.dataset.originalHtml ?? button.innerHTML;
+}
+
+function updateExampleAudioState(row, result) {
+    const audioFileInput = row.querySelector('input[name*="[audio_file]"]');
+    const audioDiskInput = row.querySelector('input[name*="[audio_disk]"]');
+    const emptyState = row.querySelector('.example-audio-empty');
+    const playerWrapper = row.querySelector('.example-audio-player-wrapper');
+    const player = row.querySelector('.example-audio-player');
+
+    if (!audioFileInput || !audioDiskInput || !playerWrapper || !player) {
+        throw new Error('예문 오디오 영역을 찾지 못했습니다.');
+    }
+
+    audioFileInput.value = result.audio_file ?? '';
+    audioDiskInput.value = result.audio_disk ?? '';
+    player.src = result.audio_url ?? '';
+    player.load();
+    playerWrapper.classList.remove('hidden');
+    emptyState?.classList.add('hidden');
+}
+
+async function handleGenerateExampleAudio(button, row) {
+    const slangId = getSlangId();
+    const koreanInput = row.querySelector('input[name*="[korean_example]"]');
+    const exampleId = row.querySelector('input[name*="[id]"]')?.value ?? '';
+
+    if (!slangId) {
+        showFormToast('저장된 슬랭에서만 예문 mp3를 생성할 수 있습니다.', 'error');
+        return;
+    }
+
+    if (!koreanInput?.value.trim()) {
+        showFormToast('한국어 예문을 입력한 뒤 다시 시도해주세요.', 'error');
+        koreanInput?.focus();
+        return;
+    }
+
+    setButtonLoading(button, true);
+
+    try {
+        const response = await fetch(`/admin/slangs/${slangId}/generate-example-audio`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                example_id: exampleId || null,
+                example_index: Number(row.dataset.index ?? 0),
+                text: koreanInput.value.trim(),
+            }),
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || !result?.success) {
+            throw new Error(result?.message ?? '예문 mp3 생성에 실패했습니다.');
+        }
+
+        updateExampleAudioState(row, result.result ?? {});
+        showFormToast(result.message ?? '예문 mp3 생성이 완료되었습니다.');
+    } catch (error) {
+        showFormToast(error.message ?? '예문 mp3 생성에 실패했습니다.', 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
 }
 
 function applyRegeneratedSection(section, data) {
@@ -307,6 +433,22 @@ document.querySelectorAll('[data-regenerate-section]').forEach((button) => {
     });
 });
 
+document.addEventListener('click', function (event) {
+    const button = event.target.closest('.generate-example-audio');
+
+    if (!button) {
+        return;
+    }
+
+    const row = button.closest('.example-row');
+
+    if (!row) {
+        return;
+    }
+
+    handleGenerateExampleAudio(button, row);
+});
+
 updateNoExamplesState();
 initExampleSortable();
 
@@ -372,6 +514,53 @@ initExampleSortable();
         openDeleteModal();
     });
 
+    document.getElementById('generate-slang-audio-btn')?.addEventListener('click', async function () {
+        const section = document.getElementById('audio-upload-section');
+        const slangId = section?.dataset.slangId;
+        const koreanInput = document.getElementById('korean');
+
+        if (!slangId) {
+            showFormToast('저장된 슬랭에서만 mp3를 생성할 수 있습니다.', 'error');
+            return;
+        }
+
+        if (!koreanInput?.value.trim()) {
+            showFormToast('한국어 욕을 입력한 뒤 다시 시도해주세요.', 'error');
+            koreanInput?.focus();
+            return;
+        }
+
+        setButtonLoading(this, true);
+        clearError();
+
+        try {
+            const response = await fetch(`/admin/slangs/${slangId}/generate-audio`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: koreanInput.value.trim(),
+                }),
+            });
+
+            const result = await response.json().catch(() => null);
+
+            if (!response.ok || !result?.success) {
+                throw new Error(result?.message ?? '슬랭 mp3 생성에 실패했습니다.');
+            }
+
+            showExistingStoredAudio(result.result?.audio_url ?? '');
+            showFormToast(result.message ?? '슬랭 mp3 생성이 완료되었습니다.');
+        } catch (error) {
+            showFormToast(error.message ?? '슬랭 mp3 생성에 실패했습니다.', 'error');
+        } finally {
+            setButtonLoading(this, false);
+        }
+    });
+
     initDeleteModal();
 
     function handleFileSelect(file) {
@@ -429,6 +618,7 @@ initExampleSortable();
         const existingSection = document.getElementById('audio-existing');
         if (existingSection && existingSection.dataset.hasFile === 'true') {
             existingSection.classList.remove('hidden');
+            document.getElementById('audio-existing-player')?.classList.remove('hidden');
         } else {
             document.getElementById('audio-dropzone')?.classList.remove('hidden');
         }
@@ -440,6 +630,44 @@ initExampleSortable();
         document.getElementById('audio-dropzone')?.classList.remove('hidden');
         document.getElementById('audio-preview')?.classList.add('hidden');
         document.getElementById('audio-existing')?.classList.add('hidden');
+        fileInput.value = '';
+
+        const existingPlayer = document.getElementById('audio-existing-player');
+        if (existingPlayer) {
+            existingPlayer.pause();
+            existingPlayer.src = '';
+            existingPlayer.classList.add('hidden');
+        }
+    }
+
+    function showExistingStoredAudio(audioUrl) {
+        if (!audioUrl) {
+            throw new Error('생성된 오디오 URL을 찾지 못했습니다.');
+        }
+
+        document.getElementById('audio-dropzone')?.classList.add('hidden');
+        document.getElementById('audio-preview')?.classList.add('hidden');
+
+        const previewPlayer = document.getElementById('audio-preview-player');
+        if (previewPlayer) {
+            previewPlayer.pause();
+            previewPlayer.src = '';
+        }
+
+        const existingSection = document.getElementById('audio-existing');
+        const existingPlayer = document.getElementById('audio-existing-player');
+
+        if (existingSection) {
+            existingSection.dataset.hasFile = 'true';
+            existingSection.classList.remove('hidden');
+        }
+
+        if (existingPlayer) {
+            existingPlayer.src = audioUrl;
+            existingPlayer.classList.remove('hidden');
+            existingPlayer.load();
+        }
+
         fileInput.value = '';
     }
 

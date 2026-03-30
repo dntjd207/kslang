@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DetailedStoreSlangRequest;
+use App\Http\Requests\Admin\GenerateSlangAudioRequest;
+use App\Http\Requests\Admin\GenerateSlangExampleAudioRequest;
 use App\Http\Requests\Admin\QuickStoreSlangRequest;
 use App\Http\Requests\Admin\RegenerateSlangSectionRequest;
 use App\Http\Requests\Admin\ReorderSlangRequest;
@@ -11,15 +13,21 @@ use App\Http\Requests\Admin\StoreSlangRequest;
 use App\Http\Requests\Admin\UpdateSlangRequest;
 use App\Models\Category;
 use App\Models\Slang;
+use App\Models\SlangExample;
 use App\Services\AudioFileService;
 use App\Services\SlangAutoFillService;
 use App\Services\SlangService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use RuntimeException;
+use Throwable;
 
 class SlangController extends Controller
 {
@@ -162,13 +170,104 @@ class SlangController extends Controller
             ], 404);
         }
 
-        $this->audioFileService->delete($slang->audio_file);
-        $slang->update(['audio_file' => null]);
+        $this->audioFileService->delete($slang->audio_file, $slang->audio_disk);
+        $slang->update([
+            'audio_file' => null,
+            'audio_disk' => null,
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => '음성 파일이 삭제되었습니다.',
         ]);
+    }
+
+    public function generateAudio(GenerateSlangAudioRequest $request, Slang $slang): JsonResponse
+    {
+        try {
+            $result = $this->slangService->generateSlangAudio($slang, (string) $request->validated('text'));
+
+            return response()->json([
+                'success' => true,
+                'message' => '슬랭 mp3 생성이 완료되었습니다.',
+                'result' => $result,
+            ]);
+        } catch (ConnectionException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Supertone API 서버에 연결하지 못했습니다.',
+            ], 502);
+        } catch (RequestException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $this->extractRequestExceptionMessage($e),
+            ], $e->response?->status() ?? 502);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => '슬랭 mp3 생성 중 오류가 발생했습니다.',
+            ], 500);
+        }
+    }
+
+    public function generateExampleAudio(GenerateSlangExampleAudioRequest $request, Slang $slang): JsonResponse
+    {
+        $example = null;
+        $exampleId = $request->validated('example_id');
+
+        if ($exampleId !== null) {
+            $example = SlangExample::query()
+                ->where('slang_id', $slang->id)
+                ->find($exampleId);
+        }
+
+        try {
+            $result = $this->slangService->generateExampleAudio(
+                $slang,
+                $example,
+                (string) $request->validated('text')
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => $example !== null
+                    ? '예문 mp3 생성과 저장이 완료되었습니다.'
+                    : '예문 mp3가 생성되었습니다. 전체 저장 시 DB에 반영됩니다.',
+                'result' => [
+                    ...$result,
+                    'example_index' => (int) $request->validated('example_index'),
+                ],
+            ]);
+        } catch (ConnectionException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Supertone API 서버에 연결하지 못했습니다.',
+            ], 502);
+        } catch (RequestException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $this->extractRequestExceptionMessage($e),
+            ], $e->response?->status() ?? 502);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => '예문 mp3 생성 중 오류가 발생했습니다.',
+            ], 500);
+        }
     }
 
     /**
@@ -275,7 +374,7 @@ class SlangController extends Controller
             ], 422);
         }
 
-        $slang->examples()->delete();
+        $this->slangService->deleteExamplesForReset($slang);
         $slang->categories()->detach();
 
         $slang->update([
@@ -309,7 +408,7 @@ class SlangController extends Controller
                 'usage_context' => $this->autoFillService->regenerateUsageContext($slang, $validated),
                 'examples' => $this->autoFillService->generateAdditionalExamples($slang, $validated, 3),
             };
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Slang section regeneration failed.', [
                 'slang_id' => $slang->id,
                 'section' => $validated['section'] ?? null,
@@ -418,5 +517,35 @@ class SlangController extends Controller
             'is_active' => false,
             'content_status' => Slang::STATUS_PENDING,
         ]);
+    }
+
+    private function extractRequestExceptionMessage(RequestException $exception): string
+    {
+        $response = $exception->response;
+
+        if ($response === null) {
+            return 'Supertone API 요청에 실패했습니다.';
+        }
+
+        $decoded = json_decode($response->body(), true);
+
+        if (is_array($decoded)) {
+            $message = $decoded['message']
+                ?? $decoded['error']
+                ?? $decoded['detail']
+                ?? data_get($decoded, 'error.message');
+
+            if (is_string($message) && trim($message) !== '') {
+                return trim($message);
+            }
+        }
+
+        $body = trim($response->body());
+
+        if ($body !== '') {
+            return Str::limit($body, 300);
+        }
+
+        return 'Supertone API 요청에 실패했습니다.';
     }
 }

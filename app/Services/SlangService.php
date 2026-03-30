@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\DB;
 class SlangService
 {
     public function __construct(
-        private AudioFileService $audioFileService
+        private AudioFileService $audioFileService,
+        private SupertoneTtsService $supertoneTtsService
     ) {}
 
     public function create(array $data): Slang
@@ -19,13 +20,16 @@ class SlangService
             $maxSortOrder = Slang::max('sort_order') ?? -1;
 
             $audioPath = null;
+            $audioDisk = null;
+
             if (isset($data['audio_file']) && $data['audio_file'] instanceof UploadedFile) {
                 $audioPath = $this->audioFileService->store($data['audio_file']);
+                $audioDisk = $this->audioFileService->getDefaultDisk();
             }
 
             $slang = Slang::create([
                 'korean' => $data['korean'],
-                'ai_generation_hint' => $this->normalizeAiGenerationHint($data['ai_generation_hint'] ?? null),
+                'ai_generation_hint' => $this->normalizeNullableString($data['ai_generation_hint'] ?? null),
                 'pronunciation' => $data['pronunciation'],
                 'english_description' => $data['english_description'],
                 'korean_description' => $data['korean_description'],
@@ -36,6 +40,7 @@ class SlangService
                 'sort_order' => $maxSortOrder + 1,
                 'is_active' => $data['is_active'] ?? true,
                 'audio_file' => $audioPath,
+                'audio_disk' => $audioDisk,
             ]);
 
             if (! empty($data['category_ids'])) {
@@ -52,19 +57,26 @@ class SlangService
     {
         return DB::transaction(function () use ($slang, $data) {
             $audioFile = $slang->audio_file;
+            $audioDisk = $slang->audio_disk;
 
             if (! empty($data['remove_audio']) && $audioFile) {
-                $this->audioFileService->delete($audioFile);
+                $this->audioFileService->delete($audioFile, $audioDisk);
                 $audioFile = null;
+                $audioDisk = null;
             }
 
             if (isset($data['audio_file']) && $data['audio_file'] instanceof UploadedFile) {
-                $audioFile = $this->audioFileService->replace($data['audio_file'], $slang->audio_file);
+                $audioFile = $this->audioFileService->replace(
+                    $data['audio_file'],
+                    $slang->audio_file,
+                    $slang->audio_disk
+                );
+                $audioDisk = $this->audioFileService->getDefaultDisk();
             }
 
             $slang->update([
                 'korean' => $data['korean'],
-                'ai_generation_hint' => $this->normalizeAiGenerationHint($data['ai_generation_hint'] ?? null),
+                'ai_generation_hint' => $this->normalizeNullableString($data['ai_generation_hint'] ?? null),
                 'pronunciation' => $data['pronunciation'],
                 'english_description' => $data['english_description'],
                 'korean_description' => $data['korean_description'],
@@ -74,6 +86,7 @@ class SlangService
                 'english_usage_context' => $data['english_usage_context'],
                 'is_active' => $data['is_active'] ?? $slang->is_active,
                 'audio_file' => $audioFile,
+                'audio_disk' => $audioDisk,
             ]);
 
             $slang->categories()->sync($data['category_ids'] ?? []);
@@ -87,17 +100,106 @@ class SlangService
     public function delete(Slang $slang): void
     {
         DB::transaction(function () use ($slang) {
+            foreach ($slang->examples as $example) {
+                $this->deleteExampleAudio($example);
+            }
+
             if ($slang->audio_file) {
-                $this->audioFileService->delete($slang->audio_file);
+                $this->audioFileService->delete($slang->audio_file, $slang->audio_disk);
             }
 
             $slang->delete();
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function generateSlangAudio(Slang $slang, string $text): array
+    {
+        return DB::transaction(function () use ($slang, $text) {
+            $synthesized = $this->synthesizeKoreanMp3($text);
+
+            $audioPath = $this->audioFileService->replaceGeneratedMp3(
+                (string) $synthesized['binary'],
+                $slang->audio_file,
+                $slang->audio_disk,
+                $this->audioFileService->getSlangsDirectory()
+            );
+
+            $audioDisk = $this->audioFileService->getDefaultDisk();
+
+            $slang->update([
+                'audio_file' => $audioPath,
+                'audio_disk' => $audioDisk,
+            ]);
+
+            return [
+                'text' => $text,
+                'audio_file' => $audioPath,
+                'audio_disk' => $audioDisk,
+                'audio_url' => $this->audioFileService->getUrl($audioPath, $audioDisk),
+                'audio_length_seconds' => $synthesized['audio_length_seconds'],
+                'request_duration_ms' => $synthesized['request_duration_ms'],
+                'endpoint' => $synthesized['endpoint'],
+                'content_type' => $synthesized['content_type'],
+            ];
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function generateExampleAudio(Slang $slang, ?SlangExample $example, string $text): array
+    {
+        return DB::transaction(function () use ($slang, $example, $text) {
+            $synthesized = $this->synthesizeKoreanMp3($text);
+
+            $audioPath = $this->audioFileService->replaceGeneratedMp3(
+                (string) $synthesized['binary'],
+                $example?->audio_file,
+                $example?->audio_disk,
+                $this->audioFileService->getSlangExamplesDirectory()
+            );
+
+            $audioDisk = $this->audioFileService->getDefaultDisk();
+
+            if ($example !== null) {
+                $example->update([
+                    'audio_file' => $audioPath,
+                    'audio_disk' => $audioDisk,
+                ]);
+            }
+
+            return [
+                'slang_id' => $slang->id,
+                'example_id' => $example?->id,
+                'persisted' => $example !== null,
+                'text' => $text,
+                'audio_file' => $audioPath,
+                'audio_disk' => $audioDisk,
+                'audio_url' => $this->audioFileService->getUrl($audioPath, $audioDisk),
+                'audio_length_seconds' => $synthesized['audio_length_seconds'],
+                'request_duration_ms' => $synthesized['request_duration_ms'],
+                'endpoint' => $synthesized['endpoint'],
+                'content_type' => $synthesized['content_type'],
+            ];
+        });
+    }
+
+    public function deleteExamplesForReset(Slang $slang): void
+    {
+        foreach ($slang->examples as $example) {
+            $this->deleteExampleAudio($example);
+        }
+
+        $slang->examples()->delete();
+    }
+
     private function syncExamples(Slang $slang, array $examples): void
     {
-        $existingIds = $slang->examples()->pluck('id')->toArray();
+        $existingExamples = $slang->examples()->get()->keyBy('id');
+        $existingIds = $existingExamples->keys()->all();
         $incomingIds = [];
 
         foreach ($examples as $index => $example) {
@@ -105,34 +207,87 @@ class SlangService
                 continue;
             }
 
-            if (! empty($example['id'])) {
-                SlangExample::where('id', $example['id'])
-                    ->where('slang_id', $slang->id)
-                    ->update([
-                        'korean_example' => $example['korean_example'],
-                        'english_example' => $example['english_example'],
-                        'sort_order' => $index,
-                    ]);
-                $incomingIds[] = $example['id'];
-            } else {
-                $newExample = $slang->examples()->create([
+            $audioFile = $this->normalizeNullableString($example['audio_file'] ?? null);
+            $audioDisk = $this->normalizeNullableString($example['audio_disk'] ?? null);
+
+            if (! empty($example['id']) && $existingExamples->has((int) $example['id'])) {
+                /** @var SlangExample $existingExample */
+                $existingExample = $existingExamples->get((int) $example['id']);
+
+                $this->deleteReplacedExampleAudio($existingExample, $audioFile, $audioDisk);
+
+                $existingExample->update([
                     'korean_example' => $example['korean_example'],
                     'english_example' => $example['english_example'],
+                    'audio_file' => $audioFile,
+                    'audio_disk' => $audioDisk,
                     'sort_order' => $index,
                 ]);
-                $incomingIds[] = $newExample->id;
+
+                $incomingIds[] = $existingExample->id;
+
+                continue;
             }
+
+            $newExample = $slang->examples()->create([
+                'korean_example' => $example['korean_example'],
+                'english_example' => $example['english_example'],
+                'audio_file' => $audioFile,
+                'audio_disk' => $audioDisk,
+                'sort_order' => $index,
+            ]);
+
+            $incomingIds[] = $newExample->id;
         }
 
         $toDelete = array_diff($existingIds, $incomingIds);
+
         if (! empty($toDelete)) {
+            $examplesToDelete = $existingExamples->only($toDelete);
+
+            foreach ($examplesToDelete as $exampleToDelete) {
+                $this->deleteExampleAudio($exampleToDelete);
+            }
+
             SlangExample::whereIn('id', $toDelete)
                 ->where('slang_id', $slang->id)
                 ->delete();
         }
     }
 
-    private function normalizeAiGenerationHint(?string $value): ?string
+    /**
+     * @return array<string, mixed>
+     */
+    private function synthesizeKoreanMp3(string $text): array
+    {
+        return $this->supertoneTtsService->synthesize($text, [
+            'language' => 'ko',
+            'model' => config('services.supertone.model', 'sona_speech_1'),
+            'speed' => 0.8,
+        ]);
+    }
+
+    private function deleteExampleAudio(SlangExample $example): void
+    {
+        if ($example->audio_file) {
+            $this->audioFileService->delete($example->audio_file, $example->audio_disk);
+        }
+    }
+
+    private function deleteReplacedExampleAudio(SlangExample $example, ?string $newAudioFile, ?string $newAudioDisk): void
+    {
+        if (! $example->audio_file) {
+            return;
+        }
+
+        if ($example->audio_file === $newAudioFile && $example->audio_disk === $newAudioDisk) {
+            return;
+        }
+
+        $this->audioFileService->delete($example->audio_file, $example->audio_disk);
+    }
+
+    private function normalizeNullableString(?string $value): ?string
     {
         $normalized = trim((string) $value);
 

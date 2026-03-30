@@ -104,24 +104,23 @@ class SupertoneTtsService
     }
 
     /**
-     * @param  array<string, mixed>  $validated
+     * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      *
      * @throws RequestException
      */
-    public function generateAndStore(array $validated): array
+    public function synthesize(string $text, array $options = [], mixed $apiKey = null, mixed $voiceId = null): array
     {
-        $apiKey = $this->resolveApiKey($validated['api_key'] ?? null);
-        $voiceId = $this->resolveVoiceId($validated['voice_id'] ?? null);
-        $payload = $this->buildPayload($validated);
-        $endpoint = $this->buildSpeechEndpoint($voiceId);
-        $disk = $this->storageDisk();
+        $resolvedApiKey = $this->resolveApiKey($apiKey);
+        $resolvedVoiceId = $this->resolveVoiceId($voiceId);
+        $payload = $this->buildPayload($text, $options);
+        $endpoint = $this->buildSpeechEndpoint($resolvedVoiceId);
         $startedAt = microtime(true);
 
         $response = Http::timeout(120)
             ->accept('audio/mpeg')
             ->withHeaders([
-                'x-sup-api-key' => $apiKey,
+                'x-sup-api-key' => $resolvedApiKey,
             ])
             ->withQueryParameters([
                 'output_format' => 'mp3',
@@ -136,27 +135,58 @@ class SupertoneTtsService
             throw new RuntimeException('Supertone API가 빈 오디오 데이터를 반환했습니다.');
         }
 
+        return [
+            'binary' => $audioBinary,
+            'text' => $text,
+            'voice_id' => $resolvedVoiceId,
+            'language' => (string) $payload['language'],
+            'style' => $payload['style'] ?? null,
+            'model' => (string) $payload['model'],
+            'voice_settings' => $payload['voice_settings'] ?? [],
+            'audio_length_seconds' => $this->parseAudioLength($response->header('X-Audio-Length')),
+            'request_duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'endpoint' => $endpoint.'?output_format=mp3',
+            'content_type' => (string) $response->header('Content-Type'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     *
+     * @throws RequestException
+     */
+    public function generateAndStore(array $validated): array
+    {
+        $disk = $this->storageDisk();
+        $synthesized = $this->synthesize(
+            text: (string) $validated['text'],
+            options: $validated,
+            apiKey: $validated['api_key'] ?? null,
+            voiceId: $validated['voice_id'] ?? null
+        );
+
         $basePath = $this->generateBasePath();
         $audioPath = $basePath.'.mp3';
         $metadataPath = $basePath.'.json';
         $savedAt = now();
 
-        if (! $this->writeToDisk($disk, $audioPath, $audioBinary)) {
+        if (! $this->writeToDisk($disk, $audioPath, (string) $synthesized['binary'])) {
             throw new RuntimeException('생성된 mp3 파일을 '.$this->getStorageDisk().' 디스크에 저장하지 못했습니다.');
         }
 
         $fileSizeBytes = (int) $disk->size($audioPath);
         $result = [
             'id' => pathinfo($audioPath, PATHINFO_FILENAME),
-            'text' => (string) $validated['text'],
-            'text_preview' => Str::limit((string) $validated['text'], 80),
-            'voice_id' => $voiceId,
-            'language' => (string) $validated['language'],
-            'style' => $this->normalizeNullableString($validated['style'] ?? null),
-            'model' => (string) $validated['model'],
-            'voice_settings' => $this->buildVoiceSettings($validated),
-            'audio_length_seconds' => $this->parseAudioLength($response->header('X-Audio-Length')),
-            'request_duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'text' => (string) $synthesized['text'],
+            'text_preview' => Str::limit((string) $synthesized['text'], 80),
+            'voice_id' => (string) $synthesized['voice_id'],
+            'language' => (string) $synthesized['language'],
+            'style' => $this->normalizeNullableString($synthesized['style'] ?? null),
+            'model' => (string) $synthesized['model'],
+            'voice_settings' => is_array($synthesized['voice_settings'] ?? null) ? $synthesized['voice_settings'] : [],
+            'audio_length_seconds' => $synthesized['audio_length_seconds'],
+            'request_duration_ms' => (int) $synthesized['request_duration_ms'],
             'audio_path' => $audioPath,
             'audio_url' => $this->buildFileUrl($audioPath),
             'file_name' => basename($audioPath),
@@ -164,8 +194,8 @@ class SupertoneTtsService
             'file_size_human' => $this->formatBytes($fileSizeBytes),
             'saved_at' => $savedAt->toIso8601String(),
             'saved_at_display' => $savedAt->format('Y-m-d H:i:s'),
-            'endpoint' => $endpoint.'?output_format=mp3',
-            'content_type' => (string) $response->header('Content-Type'),
+            'endpoint' => (string) $synthesized['endpoint'],
+            'content_type' => (string) $synthesized['content_type'],
             'storage_disk' => $this->getStorageDisk(),
             'storage_location' => $this->getStorageLocation(),
         ];
@@ -246,24 +276,24 @@ class SupertoneTtsService
     }
 
     /**
-     * @param  array<string, mixed>  $validated
+     * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
-    private function buildPayload(array $validated): array
+    private function buildPayload(string $text, array $options): array
     {
         $payload = [
-            'text' => (string) $validated['text'],
-            'language' => (string) $validated['language'],
-            'model' => (string) $validated['model'],
+            'text' => $text,
+            'language' => (string) ($options['language'] ?? config('services.supertone.default_language', 'ko')),
+            'model' => (string) ($options['model'] ?? config('services.supertone.model', 'sona_speech_1')),
         ];
 
-        $style = $this->normalizeNullableString($validated['style'] ?? null);
+        $style = $this->normalizeNullableString($options['style'] ?? config('services.supertone.default_style'));
 
         if ($style !== null) {
             $payload['style'] = $style;
         }
 
-        $voiceSettings = $this->buildVoiceSettings($validated);
+        $voiceSettings = $this->buildVoiceSettings($options);
 
         if ($voiceSettings !== []) {
             $payload['voice_settings'] = $voiceSettings;

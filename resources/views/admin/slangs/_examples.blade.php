@@ -3,6 +3,9 @@
         'id' => $e->id,
         'korean_example' => $e->korean_example,
         'english_example' => $e->english_example,
+        'audio_file' => $e->audio_file,
+        'audio_disk' => $e->audio_disk,
+        'audio_url' => $e->audio_url,
     ])->toArray() : []);
 @endphp
 
@@ -12,7 +15,7 @@
             <div>
                 <h2 class="text-lg font-semibold text-gray-800">사용 예문</h2>
                 @if (isset($slang))
-                    <p class="text-xs text-gray-500 mt-1">AI 버튼을 누르면 예문 3개가 추가 생성됩니다.</p>
+                    <p class="text-xs text-gray-500 mt-1">AI 버튼은 예문 3개를 추가 생성하고, 각 예문 행에서는 개별 mp3 생성도 가능합니다.</p>
                 @endif
             </div>
             <div class="flex items-center gap-2">

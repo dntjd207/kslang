@@ -6,6 +6,28 @@
 
 <x-common.card title="음성 파일">
     <div id="audio-upload-section" data-slang-id="{{ $slangId }}">
+        @if ($slangId)
+            <div class="mb-4 rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <h3 class="text-sm font-semibold text-indigo-900">Supertone 자동 생성</h3>
+                        <p class="mt-1 text-xs leading-5 text-indigo-800/80">
+                            현재 입력된 한국어 욕을 기준으로 speed 0.8 설정의 mp3를 생성해 즉시 저장합니다.
+                        </p>
+                    </div>
+                    <x-common.button
+                        id="generate-slang-audio-btn"
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        data-loading-text="슬랭 mp3 생성 중..."
+                    >
+                        한국어 욕 mp3 생성
+                    </x-common.button>
+                </div>
+            </div>
+        @endif
+
 
         {{-- 상태 1: 파일 없음 (드래그 앤 드롭 영역) --}}
         <div id="audio-dropzone" class="{{ $hasExistingAudio ? 'hidden' : '' }}">
@@ -58,11 +80,13 @@
                 </svg>
                 <span class="text-sm font-medium text-gray-700">음성 파일 등록됨</span>
             </div>
-            @if($hasExistingAudio)
-                <audio id="audio-existing-player" controls class="w-full mb-3" preload="metadata">
-                    <source src="{{ $audioUrl }}" type="audio/mpeg">
-                </audio>
-            @endif
+            <audio
+                id="audio-existing-player"
+                controls
+                class="w-full mb-3 {{ $hasExistingAudio ? '' : 'hidden' }}"
+                preload="metadata"
+                src="{{ $audioUrl }}"
+            ></audio>
             <div class="flex gap-2">
                 <button type="button" id="audio-replace-btn"
                         class="text-sm px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition">

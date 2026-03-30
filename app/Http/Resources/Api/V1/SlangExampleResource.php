@@ -12,6 +12,7 @@ class SlangExampleResource extends JsonResource
         return [
             'korean_example' => $this->korean_example,
             'english_example' => $this->english_example,
+            'audio_url' => $this->audio_url,
         ];
     }
 }

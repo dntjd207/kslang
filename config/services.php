@@ -54,4 +54,13 @@ return [
         'temporary_url_minutes' => (int) env('SUPERTONE_TEMPORARY_URL_MINUTES', 60),
     ],
 
+    'audio' => [
+        'disk' => env('AUDIO_STORAGE_DISK', env('SUPERTONE_STORAGE_DISK', 's3')),
+        'legacy_disk' => env('AUDIO_LEGACY_DISK', 'public'),
+        'slangs_directory' => env('AUDIO_SLANGS_DIRECTORY', 'audio/slangs'),
+        'slang_examples_directory' => env('AUDIO_SLANG_EXAMPLES_DIRECTORY', 'audio/slang-examples'),
+        'use_temporary_url' => (bool) env('AUDIO_USE_TEMPORARY_URL', env('SUPERTONE_USE_TEMPORARY_URL', true)),
+        'temporary_url_minutes' => (int) env('AUDIO_TEMPORARY_URL_MINUTES', env('SUPERTONE_TEMPORARY_URL_MINUTES', 60)),
+    ],
+
 ];
