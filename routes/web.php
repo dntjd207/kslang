@@ -36,6 +36,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
 
         Route::post('slangs/reorder', [SlangController::class, 'reorder'])->name('slangs.reorder');
+        Route::post('slangs/detailed-store', [SlangController::class, 'detailedStore'])->name('slangs.detailedStore');
         Route::post('slangs/quick-store', [SlangController::class, 'quickStore'])->name('slangs.quickStore');
         Route::resource('slangs', SlangController::class)->except(['show']);
         Route::post('slangs/{slang}/regenerate-section', [SlangController::class, 'regenerateSection'])->name('slangs.regenerateSection');

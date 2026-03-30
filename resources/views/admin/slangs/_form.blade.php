@@ -22,6 +22,31 @@
                     :required="true"
                 />
 
+                @if ($isEdit)
+                    <div class="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-indigo-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 21a9 9 0 100-18 9 9 0 000 18z"/>
+                            </svg>
+                            <div class="flex-1">
+                                <label for="ai_generation_hint" class="block text-sm font-medium text-indigo-900 mb-1">
+                                    AI 참고 설명 (선택)
+                                </label>
+                                <p class="text-xs leading-5 text-indigo-800/80 mb-3">
+                                    최신 유행어나 신조어처럼 AI가 의미를 모를 수 있을 때 참고할 설명입니다.
+                                    자동 생성과 AI 재생성 시 함께 사용됩니다.
+                                </p>
+                                <textarea name="ai_generation_hint" id="ai_generation_hint" rows="3"
+                                          placeholder="예: 밈이나 농담을 너무 과하게 반복해서 분위기를 망칠 때 쓰는 유행어"
+                                          class="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-y {{ $errors->has('ai_generation_hint') ? 'border-red-500' : 'border-indigo-200 bg-white' }}">{{ old('ai_generation_hint', $slang->ai_generation_hint) }}</textarea>
+                                @error('ai_generation_hint')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <x-common.input
                     name="pronunciation"
                     label="영어 발음"

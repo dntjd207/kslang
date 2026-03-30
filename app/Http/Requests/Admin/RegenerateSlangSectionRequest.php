@@ -19,6 +19,7 @@ class RegenerateSlangSectionRequest extends FormRequest
         return [
             'section' => ['required', 'string', 'in:descriptions,usage_context,examples'],
             'korean' => ['nullable', 'string', 'max:255'],
+            'ai_generation_hint' => ['nullable', 'string', 'max:2000'],
             'pronunciation' => ['nullable', 'string', 'max:255'],
             'english_description' => ['nullable', 'string'],
             'korean_description' => ['nullable', 'string'],
@@ -42,6 +43,7 @@ class RegenerateSlangSectionRequest extends FormRequest
             'section.required' => '재생성할 섹션을 선택해주세요.',
             'section.in' => '올바른 재생성 섹션이 아닙니다.',
             'korean.max' => '한국어 욕은 255자 이하여야 합니다.',
+            'ai_generation_hint.max' => 'AI 참고 설명은 2000자 이하여야 합니다.',
             'pronunciation.max' => '영어 발음은 255자 이하여야 합니다.',
             'level.between' => '레벨은 1~4 사이여야 합니다.',
             'usage_frequency.in' => '올바른 사용 빈도를 선택해주세요.',

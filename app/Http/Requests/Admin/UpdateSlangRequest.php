@@ -35,6 +35,7 @@ class UpdateSlangRequest extends FormRequest
     {
         return [
             'korean' => ['required', 'string', 'max:255'],
+            'ai_generation_hint' => ['nullable', 'string', 'max:2000'],
             'pronunciation' => ['required', 'string', 'max:255'],
             'english_description' => ['required', 'string'],
             'korean_description' => ['required', 'string'],
@@ -62,6 +63,7 @@ class UpdateSlangRequest extends FormRequest
         return [
             'korean.required' => '한국어 욕을 입력해주세요.',
             'korean.max' => '한국어 욕은 255자 이하여야 합니다.',
+            'ai_generation_hint.max' => 'AI 참고 설명은 2000자 이하여야 합니다.',
             'pronunciation.required' => '영어 발음을 입력해주세요.',
             'pronunciation.max' => '영어 발음은 255자 이하여야 합니다.',
             'english_description.required' => '영어 설명을 입력해주세요.',

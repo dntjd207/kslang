@@ -10,7 +10,7 @@ use Mockery\MockInterface;
 
 uses(RefreshDatabase::class);
 
-it('stores english usage context from gemini when auto filling a pending slang', function () {
+it('uses the admin hint and stores english usage context when auto filling a pending slang', function () {
     $category = Category::create([
         'name' => '인터넷 밈',
         'description' => '온라인 유행어',
@@ -19,6 +19,7 @@ it('stores english usage context from gemini when auto filling a pending slang',
 
     $slang = Slang::create([
         'korean' => '억까',
+        'ai_generation_hint' => '온라인에서 억지로 트집을 잡거나 부당하게 몰아간다고 느낄 때 쓰는 최신 유행어다.',
         'pronunciation' => '',
         'english_description' => '',
         'korean_description' => '',
@@ -70,7 +71,9 @@ it('stores english usage context from gemini when auto filling a pending slang',
         $mock->shouldReceive('generate')
             ->once()
             ->withArgs(function (string $prompt, array $schema, string $thinkingLevel): bool {
-                expect($prompt)->toContain('english_usage_context');
+                expect($prompt)->toContain('## 관리자 제공 참고 설명')
+                    ->and($prompt)->toContain('온라인에서 억지로 트집을 잡거나 부당하게 몰아간다고 느낄 때 쓰는 최신 유행어다.')
+                    ->and($prompt)->toContain('english_usage_context');
                 expect(data_get($schema, 'properties.english_usage_context.type'))->toBe('STRING');
                 expect(data_get($schema, 'required'))->toContain('english_usage_context');
                 expect($thinkingLevel)->toBe('MEDIUM');
@@ -83,6 +86,7 @@ it('stores english usage context from gemini when auto filling a pending slang',
     $filledSlang = app(SlangAutoFillService::class)->fillSlang($slang);
 
     expect($filledSlang->english_usage_context)->toBe($generatedPayload['english_usage_context'])
+        ->and($filledSlang->ai_generation_hint)->toBe('온라인에서 억지로 트집을 잡거나 부당하게 몰아간다고 느낄 때 쓰는 최신 유행어다.')
         ->and($filledSlang->usage_context)->toBe($generatedPayload['usage_context'])
         ->and($filledSlang->content_status)->toBe(Slang::STATUS_GENERATED)
         ->and($filledSlang->is_active)->toBeFalse()

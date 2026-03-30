@@ -20,6 +20,7 @@ class Slang extends Model
 
     protected $fillable = [
         'korean',
+        'ai_generation_hint',
         'pronunciation',
         'english_description',
         'korean_description',

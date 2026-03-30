@@ -25,6 +25,7 @@ class SlangService
 
             $slang = Slang::create([
                 'korean' => $data['korean'],
+                'ai_generation_hint' => $this->normalizeAiGenerationHint($data['ai_generation_hint'] ?? null),
                 'pronunciation' => $data['pronunciation'],
                 'english_description' => $data['english_description'],
                 'korean_description' => $data['korean_description'],
@@ -63,6 +64,7 @@ class SlangService
 
             $slang->update([
                 'korean' => $data['korean'],
+                'ai_generation_hint' => $this->normalizeAiGenerationHint($data['ai_generation_hint'] ?? null),
                 'pronunciation' => $data['pronunciation'],
                 'english_description' => $data['english_description'],
                 'korean_description' => $data['korean_description'],
@@ -128,5 +130,12 @@ class SlangService
                 ->where('slang_id', $slang->id)
                 ->delete();
         }
+    }
+
+    private function normalizeAiGenerationHint(?string $value): ?string
+    {
+        $normalized = trim((string) $value);
+
+        return $normalized !== '' ? $normalized : null;
     }
 }

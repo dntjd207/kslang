@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\DetailedStoreSlangRequest;
 use App\Http\Requests\Admin\QuickStoreSlangRequest;
 use App\Http\Requests\Admin\RegenerateSlangSectionRequest;
 use App\Http\Requests\Admin\ReorderSlangRequest;
@@ -35,6 +36,7 @@ class SlangController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('korean', 'like', "%{$search}%")
+                    ->orWhere('ai_generation_hint', 'like', "%{$search}%")
                     ->orWhere('pronunciation', 'like', "%{$search}%")
                     ->orWhere('english_description', 'like', "%{$search}%")
                     ->orWhere('korean_description', 'like', "%{$search}%")
@@ -176,6 +178,31 @@ class SlangController extends Controller
     }
 
     /**
+     * 단어 + 설명을 함께 등록하여 AI 생성 힌트를 저장.
+     */
+    public function detailedStore(DetailedStoreSlangRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $word = trim((string) $validated['korean']);
+
+        if (Slang::where('korean', $word)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => "'{$word}' 단어는 이미 등록되어 있습니다.",
+            ], 422);
+        }
+
+        $maxSortOrder = Slang::max('sort_order') ?? -1;
+
+        $this->createPendingSlang($word, ++$maxSortOrder, $validated['ai_generation_hint']);
+
+        return response()->json([
+            'success' => true,
+            'message' => "'{$word}' 단어가 설명과 함께 등록되었습니다.",
+        ]);
+    }
+
+    /**
      * 단어만 빠르게 등록 (AI 자동 생성 대기).
      */
     public function quickStore(QuickStoreSlangRequest $request): JsonResponse
@@ -201,19 +228,7 @@ class SlangController extends Controller
                 continue;
             }
 
-            Slang::create([
-                'korean' => $word,
-                'pronunciation' => '',
-                'english_description' => '',
-                'korean_description' => '',
-                'level' => 1,
-                'usage_frequency' => 'Occasional',
-                'usage_context' => '',
-                'english_usage_context' => '',
-                'sort_order' => ++$maxSortOrder,
-                'is_active' => false,
-                'content_status' => Slang::STATUS_PENDING,
-            ]);
+            $this->createPendingSlang($word, ++$maxSortOrder);
 
             $created++;
         }
@@ -323,6 +338,26 @@ class SlangController extends Controller
                 'usage_context' => '사용 상황이 다시 생성되었습니다.',
                 'examples' => '예문 3개가 추가 생성되었습니다.',
             },
+        ]);
+    }
+
+    private function createPendingSlang(string $word, int $sortOrder, ?string $aiGenerationHint = null): Slang
+    {
+        $normalizedHint = trim((string) $aiGenerationHint);
+
+        return Slang::create([
+            'korean' => $word,
+            'ai_generation_hint' => $normalizedHint !== '' ? $normalizedHint : null,
+            'pronunciation' => '',
+            'english_description' => '',
+            'korean_description' => '',
+            'level' => 1,
+            'usage_frequency' => 'Occasional',
+            'usage_context' => '',
+            'english_usage_context' => '',
+            'sort_order' => $sortOrder,
+            'is_active' => false,
+            'content_status' => Slang::STATUS_PENDING,
         ]);
     }
 }

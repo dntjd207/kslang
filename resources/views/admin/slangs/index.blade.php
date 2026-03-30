@@ -6,6 +6,12 @@
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-gray-800">욕/슬랭 관리</h2>
         <div class="flex items-center gap-2">
+            <x-common.button variant="secondary" onclick="openDetailedAddModal()">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                상세 등록
+            </x-common.button>
             <x-common.button variant="secondary" onclick="openQuickAddModal()">
                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -62,7 +68,7 @@
                 </svg>
                 <input type="text" id="search-input"
                        value="{{ request('search') }}"
-                       placeholder="한국어, 발음, 설명으로 검색..."
+                       placeholder="한국어, 설명, AI 참고 설명으로 검색..."
                        class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                 @if (request('search'))
                     <button type="button" id="search-clear"
@@ -155,7 +161,16 @@
                                             </svg>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 text-sm font-semibold text-gray-800">{{ $slang->korean }}</td>
+                                    <td class="px-4 py-3">
+                                        <div class="max-w-xs">
+                                            <p class="text-sm font-semibold text-gray-800">{{ $slang->korean }}</p>
+                                            @if ($slang->ai_generation_hint)
+                                                <p class="mt-1 text-xs leading-5 text-gray-500">
+                                                    {{ \Illuminate\Support\Str::limit($slang->ai_generation_hint, 80) }}
+                                                </p>
+                                            @endif
+                                        </div>
+                                    </td>
                                     <td class="px-4 py-3 text-sm text-gray-600">
                                         {{ $isPending ? '-' : $slang->pronunciation }}
                                     </td>
@@ -267,7 +282,13 @@
             </svg>
             <p class="text-gray-500 mb-1">등록된 욕/슬랭이 없습니다.</p>
             <p class="text-sm text-gray-400 mb-6">아래 버튼을 눌러 첫 욕/슬랭을 추가하세요.</p>
-            <div class="flex items-center justify-center gap-3">
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <x-common.button variant="secondary" onclick="openDetailedAddModal()">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    상세 등록
+                </x-common.button>
                 <x-common.button variant="secondary" onclick="openQuickAddModal()">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -320,6 +341,63 @@
         </div>
     </div>
 
+    {{-- 상세 등록 모달 --}}
+    <div id="detailed-add-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-black/50 transition-opacity" onclick="closeDetailedAddModal()"></div>
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="max-w-lg w-full bg-white rounded-xl shadow-xl transform transition-all">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">상세 등록 (설명 기반 AI 생성)</h3>
+                    <button onclick="closeDetailedAddModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="px-6 py-5 space-y-4">
+                    <p class="text-sm text-gray-600">
+                        최신 유행어나 AI가 의미를 잘 모르는 표현은 단어 설명을 함께 등록해주세요.
+                        입력한 설명을 AI 프롬프트에 반영해 더 정확한 콘텐츠를 생성합니다.
+                    </p>
+
+                    <div>
+                        <label for="detailed-add-word" class="block text-sm font-medium text-gray-700 mb-1">
+                            한국어 단어 <span class="text-red-500">*</span>
+                        </label>
+                        <input id="detailed-add-word"
+                               type="text"
+                               placeholder="예: 뇌절"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+
+                    <div>
+                        <label for="detailed-add-description" class="block text-sm font-medium text-gray-700 mb-1">
+                            단어 설명 <span class="text-red-500">*</span>
+                        </label>
+                        <textarea id="detailed-add-description"
+                                  rows="5"
+                                  placeholder="예: 밈이나 농담을 너무 과하게 반복해서 분위기를 망칠 때 쓰는 유행어"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"></textarea>
+                    </div>
+
+                    <p class="text-xs text-gray-400">
+                        등록 후 5분마다 자동으로 AI가 콘텐츠를 생성합니다. 생성된 콘텐츠는 승인 후 API에 반영됩니다.
+                    </p>
+                </div>
+
+                <div class="px-6 py-3 bg-gray-50 rounded-b-xl flex justify-end space-x-3">
+                    <x-common.button variant="secondary" size="sm" type="button" onclick="closeDetailedAddModal()">
+                        취소
+                    </x-common.button>
+                    <x-common.button size="sm" type="button" id="confirm-detailed-add">
+                        등록
+                    </x-common.button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- 빠른 등록 모달 --}}
     <div id="quick-add-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-black/50 transition-opacity" onclick="closeQuickAddModal()"></div>
@@ -338,6 +416,9 @@
                     <p class="text-sm text-gray-600 mb-3">
                         단어만 입력하면 AI가 자동으로 콘텐츠를 생성합니다.
                         여러 단어를 줄바꿈 또는 쉼표로 구분하여 한 번에 등록할 수 있습니다.
+                    </p>
+                    <p class="text-xs text-gray-500 mb-3">
+                        최신 유행어처럼 설명이 필요한 표현은 위의 상세 등록을 사용해주세요.
                     </p>
                     <textarea id="quick-add-words"
                               rows="6"
@@ -369,6 +450,8 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const currentContentStatusFilter = @js(request('content_status'));
+        const quickStoreUrl = @js(route('admin.slangs.quickStore'));
+        const detailedStoreUrl = @js(route('admin.slangs.detailedStore'));
         const statusBadgeStyles = {
             complete: 'bg-gray-100 text-gray-700',
             pending: 'bg-amber-100 text-amber-700',
@@ -381,6 +464,18 @@
             generated: '승인 대기',
             approved: 'AI 승인',
         };
+
+        function extractErrorMessage(data, fallback) {
+            if (data?.message) {
+                return data.message;
+            }
+
+            const firstError = Object.values(data?.errors ?? {})
+                .flat()
+                .find((message) => typeof message === 'string' && message.trim() !== '');
+
+            return firstError ?? fallback;
+        }
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
@@ -639,6 +734,69 @@
             });
         });
 
+        // === 상세 등록 모달 ===
+        window.openDetailedAddModal = function () {
+            document.getElementById('detailed-add-word').value = '';
+            document.getElementById('detailed-add-description').value = '';
+            openModal('detailed-add-modal');
+            setTimeout(() => document.getElementById('detailed-add-word').focus(), 100);
+        };
+
+        function closeDetailedAddModal() {
+            closeModal('detailed-add-modal');
+        }
+
+        document.getElementById('confirm-detailed-add')?.addEventListener('click', async function () {
+            const wordInput = document.getElementById('detailed-add-word');
+            const descriptionInput = document.getElementById('detailed-add-description');
+            const korean = wordInput.value.trim();
+            const aiGenerationHint = descriptionInput.value.trim();
+
+            if (!korean) {
+                showToast('단어를 입력해주세요.', 'error');
+                wordInput.focus();
+                return;
+            }
+
+            if (!aiGenerationHint) {
+                showToast('단어 설명을 입력해주세요.', 'error');
+                descriptionInput.focus();
+                return;
+            }
+
+            const btn = this;
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(detailedStoreUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        korean,
+                        ai_generation_hint: aiGenerationHint,
+                    }),
+                });
+
+                const data = await response.json().catch(() => null);
+
+                if (!response.ok || !data?.success) {
+                    throw new Error(extractErrorMessage(data, '상세 등록에 실패했습니다.'));
+                }
+
+                closeDetailedAddModal();
+                showToast(data.message, 'success');
+                setTimeout(() => location.reload(), 500);
+            } catch (error) {
+                showToast(error.message || '상세 등록에 실패했습니다.', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
         // === 빠른 등록 모달 ===
         window.openQuickAddModal = function () {
             document.getElementById('quick-add-words').value = '';
@@ -650,7 +808,7 @@
             closeModal('quick-add-modal');
         }
 
-        document.getElementById('confirm-quick-add')?.addEventListener('click', function () {
+        document.getElementById('confirm-quick-add')?.addEventListener('click', async function () {
             const textarea = document.getElementById('quick-add-words');
             const words = textarea.value.trim();
             if (!words) {
@@ -661,31 +819,31 @@
             const btn = this;
             btn.disabled = true;
 
-            fetch('/admin/slangs/quick-store', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({ words })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    closeQuickAddModal();
-                    showToast(data.message, 'success');
-                    setTimeout(() => location.reload(), 500);
-                } else {
-                    showToast(data.message || '등록에 실패했습니다.', 'error');
+            try {
+                const response = await fetch(quickStoreUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ words })
+                });
+
+                const data = await response.json().catch(() => null);
+
+                if (!response.ok || !data?.success) {
+                    throw new Error(extractErrorMessage(data, '등록에 실패했습니다.'));
                 }
-            })
-            .catch(() => {
-                showToast('등록에 실패했습니다.', 'error');
-            })
-            .finally(() => {
+
+                closeQuickAddModal();
+                showToast(data.message, 'success');
+                setTimeout(() => location.reload(), 500);
+            } catch (error) {
+                showToast(error.message || '등록에 실패했습니다.', 'error');
+            } finally {
                 btn.disabled = false;
-            });
+            }
         });
 
         // === 승인/반려 ===

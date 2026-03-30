@@ -184,6 +184,7 @@ function getRegenerationPayload(section) {
     return {
         section,
         korean: document.getElementById('korean')?.value ?? '',
+        ai_generation_hint: document.getElementById('ai_generation_hint')?.value ?? '',
         pronunciation: document.getElementById('pronunciation')?.value ?? '',
         english_description: document.getElementById('english_description')?.value ?? '',
         korean_description: document.getElementById('korean_description')?.value ?? '',

@@ -50,7 +50,7 @@ class SlangAutoFillService
     public function fillSlang(Slang $slang): Slang
     {
         $categories = Category::orderBy('sort_order')->pluck('name')->toArray();
-        $prompt = $this->buildPrompt($slang->korean, $categories);
+        $prompt = $this->buildPrompt($slang->korean, $categories, $slang->ai_generation_hint);
         $schema = $this->buildResponseSchema();
 
         $data = $this->generateStructuredData($prompt, $schema);
@@ -72,6 +72,8 @@ class SlangAutoFillService
 
 ## 대상 단어
 {$slangContext['korean']}
+
+{$this->buildAiHintSection($slangContext['ai_generation_hint'])}
 
 ## 참고 정보
 - pronunciation: {$slangContext['pronunciation']}
@@ -126,6 +128,8 @@ PROMPT;
 ## 대상 단어
 {$slangContext['korean']}
 
+{$this->buildAiHintSection($slangContext['ai_generation_hint'])}
+
 ## 참고 정보
 - pronunciation: {$slangContext['pronunciation']}
 - level: {$slangContext['level']}
@@ -177,6 +181,8 @@ PROMPT;
 
 ## 대상 단어
 {$slangContext['korean']}
+
+{$this->buildAiHintSection($slangContext['ai_generation_hint'])}
 
 ## 참고 정보
 - pronunciation: {$slangContext['pronunciation']}
@@ -243,7 +249,7 @@ PROMPT;
         ];
     }
 
-    private function buildPrompt(string $koreanWord, array $existingCategories): string
+    private function buildPrompt(string $koreanWord, array $existingCategories, ?string $aiGenerationHint = null): string
     {
         $categoryList = ! empty($existingCategories)
             ? implode(', ', $existingCategories)
@@ -255,6 +261,8 @@ PROMPT;
 
 ## 대상 단어
 {$koreanWord}
+
+{$this->buildAiHintSection((string) $aiGenerationHint)}
 
 ## 작성 규칙
 1. pronunciation: 영어 로마자 발음 표기 (예: "ssi-bal", "gaesaekki")
@@ -372,6 +380,7 @@ PROMPT;
      * @param  array<string, mixed>  $context
      * @return array{
      *     korean: string,
+     *     ai_generation_hint: string,
      *     pronunciation: string,
      *     english_description: string,
      *     korean_description: string,
@@ -399,6 +408,7 @@ PROMPT;
 
         return [
             'korean' => $this->resolveContextValue($context, 'korean', $slang->korean),
+            'ai_generation_hint' => $this->resolveContextValue($context, 'ai_generation_hint', $slang->ai_generation_hint),
             'pronunciation' => $this->resolveContextValue($context, 'pronunciation', $slang->pronunciation),
             'english_description' => $this->resolveContextValue($context, 'english_description', $slang->english_description),
             'korean_description' => $this->resolveContextValue($context, 'korean_description', $slang->korean_description),
@@ -418,6 +428,22 @@ PROMPT;
         $value = $context[$key] ?? $fallback;
 
         return trim((string) $value);
+    }
+
+    private function buildAiHintSection(string $hint): string
+    {
+        $hint = trim($hint);
+
+        if ($hint === '') {
+            return '';
+        }
+
+        return <<<PROMPT
+## 관리자 제공 참고 설명
+{$hint}
+
+위 설명은 최신 유행어/신조어를 해석하기 위한 핵심 참고 정보입니다. 일반적인 사전 지식보다 위 설명의 의미와 맥락을 우선 반영하고, 부족한 부분만 자연스럽게 보완해주세요.
+PROMPT;
     }
 
     /**

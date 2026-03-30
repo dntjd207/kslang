@@ -52,11 +52,12 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 
 - **SlangService**: DB 트랜잭션으로 슬랭 + 카테고리 sync + 예문 동기화 + 음성 파일 처리를 원자적으로 실행
 - **기본 정보 입력**: 사용 상황은 한글(`usage_context`)과 영어 번역(`english_usage_context`)을 함께 관리
+- **AI 참고 설명**: 상세 등록 시 `ai_generation_hint`에 관리자 설명을 저장하고, AI 자동 생성/재생성 시 최신 유행어 의미 해석의 참고 정보로 사용
 - **AI 부분 재생성**: 수정 화면에서 설명, 사용 상황, 예문 섹션별로 AI 재생성 가능. 결과는 즉시 DB 저장하지 않고 폼 값만 교체/추가하여 관리자 검토 후 저장
 - **예문 동기화**: 기존 예문 id가 있으면 업데이트, 없으면 신규 생성, 전송되지 않은 기존 예문은 삭제. FormRequest의 `prepareForValidation()`에서 빈 예문 행 사전 필터링
 - **예문 UI**: 예문 섹션을 `_examples.blade.php` + `_example-row.blade.php`로 분리, 필드별 인라인 에러 표시, 반응형(모바일 세로 스택), 드래그 앤 드롭 정렬, 최대 50개 안내, AI 예문 3개 추가 지원
 - **음성 파일**: AudioFileService로 분리. UUID 파일명으로 `storage/app/public/audio/slangs/`에 저장. 드래그 앤 드롭 + 파일 선택 업로드, 클라이언트/서버 유효성 검증(mp3, 5MB), 미리듣기, AJAX 단독 삭제, 교체 시 기존 파일 물리 삭제
-- **검색**: korean, pronunciation, english_description, korean_description, usage_context, english_usage_context 6개 필드 LIKE 검색 (2자 이상)
+- **검색**: korean, ai_generation_hint, pronunciation, english_description, korean_description, usage_context, english_usage_context 7개 필드 LIKE 검색 (2자 이상)
 - **필터**: 레벨(1~4) + 카테고리(whereHas) + 검색어 조합
 - **삭제**: CASCADE로 category_slang, slang_examples 자동 삭제 + 음성 파일 물리 삭제
 - **토글/정렬/삭제**: AJAX(Fetch API) + JSON 응답
@@ -75,3 +76,4 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-03-01 | F-011 AI 자동 콘텐츠 생성 | content_status 컬럼 추가, 빠른 등록/승인/반려 라우트, 상태 필터 탭·뱃지, apiVisible 스코프 |
 | 2026-03-29 | 사용 상황 영어 번역 필드 추가 | `english_usage_context` 컬럼, 관리자 입력, API 응답, 검색 확장 |
 | 2026-03-29 | 슬랭 수정 화면 AI 섹션 재생성 추가 | 설명/사용 상황 재생성, 예문 3개 추가 생성, 저장 전 폼 반영 |
+| 2026-03-30 | 상세 등록(단어+설명) 및 AI 참고 설명 편집 추가 | `ai_generation_hint` 저장, AI 프롬프트 반영, 관리 화면 검색/표시 확장 |
