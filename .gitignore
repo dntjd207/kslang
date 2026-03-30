@@ -25,7 +25,6 @@ Thumbs.db
 
 # Composer
 composer.phar
-composer.lock
 
 # NPM/Yarn
 package-lock.json
