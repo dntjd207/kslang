@@ -39,12 +39,12 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 ### 프론트엔드
 - `resources/views/admin/slangs/index.blade.php` — 목록 (전체 목록 표시, 검색, 카테고리 탭/필터, 드래그 정렬, 토글, 삭제 모달)
 - `resources/views/admin/slangs/create.blade.php` — 생성 폼
-- `resources/views/admin/slangs/edit.blade.php` — 수정 폼
+- `resources/views/admin/slangs/edit.blade.php` — 수정 폼 + 카드뉴스용 복사 버튼
 - `resources/views/admin/slangs/_form.blade.php` — 공통 폼 Partial (기본정보 + 카테고리 + 음성 + 예문 include)
 - `resources/views/admin/slangs/_audio-upload.blade.php` — 음성 파일 업로드/미리듣기/삭제 Partial
 - `resources/views/admin/slangs/_examples.blade.php` — 사용 예문 섹션 Partial
 - `resources/views/admin/slangs/_example-row.blade.php` — 단일 예문 행 Partial (라벨, 필드별 에러, 반응형)
-- `resources/views/admin/slangs/_form_scripts.blade.php` — 폼 JavaScript (예문 동적 추가/삭제/정렬, 음성 미리듣기)
+- `resources/views/admin/slangs/_form_scripts.blade.php` — 폼 JavaScript (예문 동적 추가/삭제/정렬, 음성 미리듣기, 카드뉴스용 클립보드 복사)
 
 ### 마이그레이션
 - `database/migrations/2026_02_28_000002_create_slangs_table.php`
@@ -61,6 +61,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - **기본 정보 입력**: 사용 상황은 한글(`usage_context`)과 영어 번역(`english_usage_context`)을 함께 관리
 - **AI 참고 설명**: 상세 등록 시 `ai_generation_hint`에 관리자 설명을 저장하고, AI 자동 생성/재생성 시 최신 유행어 의미 해석의 참고 정보로 사용
 - **AI 부분 재생성**: 수정 화면에서 설명, 사용 상황, 예문 섹션별로 AI 재생성 가능. 결과는 즉시 DB 저장하지 않고 폼 값만 교체/추가하여 관리자 검토 후 저장
+- **카드뉴스용 복사**: 수정 화면에서 현재 폼 값을 기준으로 단어, 설명, 사용 상황, 예문을 보기 좋은 텍스트로 정리해 클립보드에 복사
 - **예문 동기화**: 기존 예문 id가 있으면 업데이트, 없으면 신규 생성, 전송되지 않은 기존 예문은 삭제. FormRequest의 `prepareForValidation()`에서 빈 예문 행 사전 필터링
 - **슬랭 본문 mp3 생성**: 수정 화면에서 현재 입력된 한국어 욕을 기준으로 speed 0.8의 Supertone mp3를 생성하고, 생성 직후 `audio_file`, `audio_disk`를 저장해 즉시 재생 가능
 - **예문 mp3 생성**: 수정 화면의 각 예문 행에서 개별 mp3 생성 가능. 저장된 예문은 즉시 DB 저장, 새 예문은 hidden input에 경로를 보관했다가 전체 저장 시 함께 반영
@@ -91,3 +92,4 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-03-30 | 상세 등록(단어+설명) 및 AI 참고 설명 편집 추가 | `ai_generation_hint` 저장, AI 프롬프트 반영, 관리 화면 검색/표시 확장 |
 | 2026-03-30 | 슬랭 목록 전체 보기 및 카테고리 탭 추가 | 페이지네이션 제거, 카테고리별 필터 가시성 개선, 필터 상태 정렬 비활성화 |
 | 2026-03-30 | 슬랭 본문/예문 mp3 생성 기능 추가 | Supertone speed 0.8 생성, 예문 audio_url API 준비 |
+| 2026-03-30 | 슬랭 수정 화면 카드뉴스용 복사 버튼 추가 | 현재 폼 값 기준으로 단어/설명/예문 복사 |

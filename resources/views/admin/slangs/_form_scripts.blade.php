@@ -24,6 +24,48 @@ function showFormToast(message, type = 'success') {
     }, 3000);
 }
 
+function getInputValue(id) {
+    return document.getElementById(id)?.value.trim() ?? '';
+}
+
+function getSelectedOptionText(id) {
+    const select = document.getElementById(id);
+    const selectedOption = select?.selectedOptions?.[0];
+
+    if (!selectedOption) {
+        return '';
+    }
+
+    return selectedOption.textContent.trim();
+}
+
+async function copyTextToClipboard(text) {
+    if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+
+        return;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', 'readonly');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
+
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const copied = document.execCommand('copy');
+    textarea.remove();
+
+    if (!copied) {
+        throw new Error('클립보드 복사에 실패했습니다.');
+    }
+}
+
 function escapeHtml(value) {
     return String(value)
         .replaceAll('&', '&amp;')
@@ -239,6 +281,102 @@ function collectExamplesFromForm() {
         .filter((example) => example.korean_example.trim() !== '' || example.english_example.trim() !== '');
 }
 
+function buildCardNewsCopyText() {
+    const korean = getInputValue('korean');
+    const pronunciation = getInputValue('pronunciation');
+    const level = getSelectedOptionText('level');
+    const usageFrequency = getSelectedOptionText('usage_frequency');
+    const koreanDescription = getInputValue('korean_description');
+    const englishDescription = getInputValue('english_description');
+    const usageContext = getInputValue('usage_context');
+    const englishUsageContext = getInputValue('english_usage_context');
+    const examples = collectExamplesFromForm().map((example) => ({
+        korean_example: example.korean_example.trim(),
+        english_example: example.english_example.trim(),
+    }));
+
+    if (korean === '') {
+        throw new Error('한국어 욕을 입력한 뒤 다시 시도해주세요.');
+    }
+
+    if (koreanDescription === '' && englishDescription === '' && examples.length === 0) {
+        throw new Error('복사할 설명이나 예문이 없습니다.');
+    }
+
+    const lines = [
+        '카드뉴스 제작용 단어 정리',
+        '',
+        '[기본 정보]',
+        `단어: ${korean}`,
+    ];
+
+    if (pronunciation !== '') {
+        lines.push(`발음: ${pronunciation}`);
+    }
+
+    if (level !== '' && level !== '레벨 선택') {
+        lines.push(`레벨: ${level}`);
+    }
+
+    if (usageFrequency !== '' && usageFrequency !== '사용 빈도 선택') {
+        lines.push(`사용 빈도: ${usageFrequency}`);
+    }
+
+    if (koreanDescription !== '' || englishDescription !== '') {
+        lines.push('', '[설명]');
+
+        if (koreanDescription !== '') {
+            lines.push('한글 설명:', koreanDescription);
+        }
+
+        if (englishDescription !== '') {
+            if (koreanDescription !== '') {
+                lines.push('');
+            }
+
+            lines.push('영어 설명:', englishDescription);
+        }
+    }
+
+    if (usageContext !== '' || englishUsageContext !== '') {
+        lines.push('', '[사용 상황]');
+
+        if (usageContext !== '') {
+            lines.push('한글:', usageContext);
+        }
+
+        if (englishUsageContext !== '') {
+            if (usageContext !== '') {
+                lines.push('');
+            }
+
+            lines.push('영어:', englishUsageContext);
+        }
+    }
+
+    if (examples.length > 0) {
+        lines.push('', '[예문]');
+
+        examples.forEach((example, index) => {
+            if (index > 0) {
+                lines.push('');
+            }
+
+            lines.push(`${index + 1}.`);
+
+            if (example.korean_example !== '') {
+                lines.push(`- 한국어: ${example.korean_example}`);
+            }
+
+            if (example.english_example !== '') {
+                lines.push(`- 영어 번역: ${example.english_example}`);
+            }
+        });
+    }
+
+    return lines.join('\n').trim();
+}
+
 function getRegenerationPayload(section) {
     return {
         section,
@@ -377,6 +515,17 @@ function applyRegeneratedSection(section, data) {
         }
     }
 }
+
+document.querySelector('[data-copy-card-news]')?.addEventListener('click', async function () {
+    try {
+        const copyText = buildCardNewsCopyText();
+
+        await copyTextToClipboard(copyText);
+        showFormToast('카드뉴스용 텍스트를 클립보드에 복사했습니다.');
+    } catch (error) {
+        showFormToast(error.message ?? '클립보드 복사에 실패했습니다.', 'error');
+    }
+});
 
 document.querySelectorAll('[data-regenerate-section]').forEach((button) => {
     button.addEventListener('click', async function () {
