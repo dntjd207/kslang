@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\SlangController;
+use App\Http\Controllers\Admin\SupertoneTtsController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\PublicController;
@@ -53,5 +54,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('api-playground', [ApiPlaygroundController::class, 'index'])->name('api-playground.index');
         Route::post('api-playground/request', [ApiPlaygroundController::class, 'execute'])->name('api-playground.execute');
+
+        Route::get('supertone-tts', [SupertoneTtsController::class, 'index'])->name('supertone-tts.index');
+        Route::post('supertone-tts/generate', [SupertoneTtsController::class, 'generate'])->name('supertone-tts.generate');
     });
 });

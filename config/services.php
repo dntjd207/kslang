@@ -41,4 +41,13 @@ return [
         'base_url' => 'https://generativelanguage.googleapis.com/v1beta',
     ],
 
+    'supertone' => [
+        'api_key' => env('SUPERTONE_API_KEY'),
+        'voice_id' => env('SUPERTONE_VOICE_ID'),
+        'model' => env('SUPERTONE_MODEL', 'sona_speech_1'),
+        'base_url' => env('SUPERTONE_BASE_URL', 'https://supertoneapi.com'),
+        'default_language' => env('SUPERTONE_DEFAULT_LANGUAGE', 'ko'),
+        'default_style' => env('SUPERTONE_DEFAULT_STYLE'),
+    ],
+
 ];

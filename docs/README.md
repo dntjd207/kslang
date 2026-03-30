@@ -12,3 +12,4 @@
 | F-009 랜딩 페이지 | 앱 소개 공개 랜딩 페이지, slang 미리보기 카드, Google Play 다운로드 CTA | `docs/landing/SPECS.md` |
 | F-010 앱 API | 안드로이드 앱용 REST API 10개 엔드포인트 + 관리자용 API Playground(실시간 요청 테스트), X-API-Key 인증, API Resource 활용 | `docs/app-api/SPECS.md` |
 | F-011 AI 자동 콘텐츠 생성 | 빠른등록(단어만) / 상세등록(단어+설명) → Gemini AI 자동 콘텐츠 생성 (responseSchema), 관리자 승인 워크플로우, 5분 주기 cron | `docs/auto-fill/SPECS.md` |
+| F-012 Supertone TTS 테스트 관리 | 관리자에서 Supertone TTS를 직접 호출해 mp3 저장, 재생, 다운로드, 최근 생성 결과 확인 | `docs/supertone-tts/SPECS.md` |

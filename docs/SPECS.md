@@ -17,6 +17,7 @@
 
 ## 외부 API
 - **Google Gemini API**: gemini-3.1-pro-preview 모델, Thinking 지원, 선택적 responseSchema
+- **Supertone API**: 관리자 TTS 테스트용 서버 프록시 호출, mp3 저장 및 재생
 
 ## 개발 도구
 - **Pest**: 4 (테스트)

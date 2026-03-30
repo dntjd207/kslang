@@ -337,3 +337,18 @@
 ### 주요 결정 사항
 - 카테고리별 보기는 기존 드롭다운 대신 탭 형태로 노출하여 가시성을 높이고, 현재 필터 조건 기준 개수를 함께 표시하도록 설계
 - 정렬 순서는 전역 `sort_order` 기준이므로 필터링된 부분 목록에서 재정렬하지 못하도록 제한하여 의도치 않은 순서 변경을 방지
+
+---
+
+### 작업 내용
+- 관리자 Supertone TTS 테스트 화면 추가
+  - `SupertoneTtsController`, `GenerateSupertoneTtsRequest`, `SupertoneTtsService` 생성
+  - `/admin/supertone-tts` 화면과 `/admin/supertone-tts/generate` 실행 라우트 추가
+  - 텍스트 입력, 모델/언어/voice settings 조절, mp3 저장, 즉시 재생/다운로드 UI 구현
+  - `public` 스토리지에 mp3 + JSON 메타데이터를 함께 저장하고 최근 생성 목록을 DB 없이 표시
+  - Pest 테스트 추가: 화면 접근, 환경값 기반 생성, 직접 입력 자격증명 생성, 필수 자격증명 검증
+  - `config/services.php`, `.env.example`, `docs/SPECS.md`, `docs/README.md`, `docs/supertone-tts/SPECS.md` 반영
+
+### 주요 결정 사항
+- 실제 API Key를 코드에 고정하지 않고, 환경값이 없을 때만 관리자 폼에서 직접 입력받는 방식으로 구성
+- 저장 이력은 별도 DB 테이블 없이 mp3 옆 JSON 메타데이터를 읽어 최근 목록을 구성하여 마이그레이션 없이 구현
