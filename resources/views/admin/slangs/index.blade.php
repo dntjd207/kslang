@@ -29,7 +29,80 @@
         </div>
     </div>
 
-    @if ($slangs->total() > 0 || request()->hasAny(['search', 'level', 'category_id', 'content_status']))
+    @if ($slangs->isNotEmpty() || $hasAppliedFilters)
+        @php
+            $activeCategoryId = request('category_id');
+        @endphp
+
+        <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div class="relative flex-1">
+                <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input type="text" id="search-input"
+                       value="{{ request('search') }}"
+                       placeholder="한국어, 설명, AI 참고 설명으로 검색..."
+                       class="w-full rounded-lg border border-gray-300 py-2 pr-10 pl-10 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                @if (request('search'))
+                    <button type="button" id="search-clear"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                @endif
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">
+                    현재 {{ number_format($slangs->count()) }}개 표시
+                </span>
+                @if ($hasAppliedFilters)
+                    <a href="{{ route('admin.slangs.index') }}"
+                       class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                        필터 초기화
+                    </a>
+                @endif
+            </div>
+        </div>
+
+        <div class="mb-4 rounded-xl border border-gray-200 bg-white p-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-800">카테고리별 보기</p>
+                    <p class="text-xs text-gray-500">카테고리 탭으로 관련 욕/슬랭만 빠르게 확인할 수 있습니다.</p>
+                </div>
+                <span class="text-xs text-gray-400">카테고리 기준 전체 {{ number_format($categoryTotalCount) }}개</span>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2">
+                @php
+                    $isAllCategoriesActive = ! $activeCategoryId;
+                @endphp
+                <a href="{{ request()->fullUrlWithQuery(['category_id' => null]) }}"
+                   class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition {{ $isAllCategoriesActive ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
+                    전체
+                    <span class="inline-flex min-w-[22px] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold {{ $isAllCategoriesActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600' }}">
+                        {{ number_format($categoryTotalCount) }}
+                    </span>
+                </a>
+
+                @foreach ($categories as $category)
+                    @php
+                        $isActive = (string) $activeCategoryId === (string) $category->id;
+                        $categoryCount = $category->filtered_slangs_count;
+                    @endphp
+                    <a href="{{ request()->fullUrlWithQuery(['category_id' => $category->id]) }}"
+                       class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition {{ $isActive ? 'bg-indigo-600 text-white' : ($categoryCount > 0 ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' : 'border border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100') }}">
+                        {{ $category->name }}
+                        <span class="inline-flex min-w-[22px] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold {{ $isActive ? 'bg-white/20 text-white' : ($categoryCount > 0 ? 'bg-gray-100 text-gray-600' : 'bg-white text-gray-400') }}">
+                            {{ number_format($categoryCount) }}
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+
         {{-- 콘텐츠 상태 필터 탭 --}}
         <div class="flex flex-wrap gap-2 mb-4">
             @php
@@ -60,37 +133,6 @@
             @endforeach
         </div>
 
-        {{-- 검색 + 카테고리 필터 --}}
-        <div class="flex flex-col sm:flex-row gap-3 mb-4">
-            <div class="relative flex-1">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-                <input type="text" id="search-input"
-                       value="{{ request('search') }}"
-                       placeholder="한국어, 설명, AI 참고 설명으로 검색..."
-                       class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                @if (request('search'))
-                    <button type="button" id="search-clear"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                @endif
-            </div>
-
-            <select id="category-filter"
-                    class="px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:w-48">
-                <option value="">전체 카테고리</option>
-                @foreach ($categories as $category)
-                    <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
-                        {{ $category->name }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-
         {{-- 레벨 필터 탭 --}}
         <div class="flex flex-wrap gap-2 mb-4">
             @php
@@ -114,6 +156,12 @@
                 </a>
             @endforeach
         </div>
+
+        @unless ($isReorderable)
+            <div class="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                필터가 적용된 상태에서는 목록만 확인할 수 있으며, 드래그 정렬은 전체 보기에서만 변경할 수 있습니다.
+            </div>
+        @endunless
 
         @if ($slangs->isEmpty())
             {{-- 검색 결과 없음 --}}
@@ -155,7 +203,8 @@
                                     data-content-status="{{ $slang->content_status }}"
                                     data-is-active="{{ $slang->is_active ? '1' : '0' }}">
                                     <td class="px-3 py-3">
-                                        <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors">
+                                        <div class="{{ $isReorderable ? 'drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500' : 'cursor-not-allowed text-gray-200' }} transition-colors"
+                                             @unless ($isReorderable) title="정렬은 전체 보기에서만 가능합니다." @endunless>
                                             <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                                                 <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z"/>
                                             </svg>
@@ -270,8 +319,6 @@
                     </table>
                 </div>
             </div>
-
-            {{ $slangs->links('components.admin.pagination') }}
         @endif
     @else
         {{-- 데이터 0건 --}}
@@ -450,6 +497,7 @@
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const currentContentStatusFilter = @js(request('content_status'));
+        const canReorder = @js($isReorderable);
         const quickStoreUrl = @js(route('admin.slangs.quickStore'));
         const detailedStoreUrl = @js(route('admin.slangs.detailedStore'));
         const statusBadgeStyles = {
@@ -629,21 +677,6 @@
             searchClear.addEventListener('click', function () {
                 const url = new URL(window.location.href);
                 url.searchParams.delete('search');
-                url.searchParams.delete('page');
-                window.location.href = url.toString();
-            });
-        }
-
-        // === 카테고리 필터 ===
-        const categoryFilter = document.getElementById('category-filter');
-        if (categoryFilter) {
-            categoryFilter.addEventListener('change', function () {
-                const url = new URL(window.location.href);
-                if (this.value) {
-                    url.searchParams.set('category_id', this.value);
-                } else {
-                    url.searchParams.delete('category_id');
-                }
                 url.searchParams.delete('page');
                 window.location.href = url.toString();
             });
@@ -931,7 +964,7 @@
         // === SortableJS 드래그 앤 드롭 ===
         document.addEventListener('DOMContentLoaded', function () {
             const list = document.getElementById('slang-list');
-            if (!list) return;
+            if (!list || !canReorder) return;
 
             new Sortable(list, {
                 handle: '.drag-handle',

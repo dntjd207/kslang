@@ -14,6 +14,7 @@ use App\Models\Slang;
 use App\Services\AudioFileService;
 use App\Services\SlangAutoFillService;
 use App\Services\SlangService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,51 +31,44 @@ class SlangController extends Controller
 
     public function index(Request $request): View
     {
-        $query = Slang::with('categories');
+        $filters = $this->extractIndexFilters($request);
+        $hasAppliedFilters = $this->hasAppliedIndexFilters($filters);
 
-        if ($request->filled('search') && mb_strlen($request->search) >= 2) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('korean', 'like', "%{$search}%")
-                    ->orWhere('ai_generation_hint', 'like', "%{$search}%")
-                    ->orWhere('pronunciation', 'like', "%{$search}%")
-                    ->orWhere('english_description', 'like', "%{$search}%")
-                    ->orWhere('korean_description', 'like', "%{$search}%")
-                    ->orWhere('usage_context', 'like', "%{$search}%")
-                    ->orWhere('english_usage_context', 'like', "%{$search}%");
-            });
-        }
+        $slangQuery = Slang::query()->with('categories');
+        $this->applyIndexFilters($slangQuery, $filters);
 
-        if ($request->filled('level')) {
-            $query->where('level', $request->level);
-        }
+        $slangs = $slangQuery
+            ->orderBy('sort_order', 'asc')
+            ->get();
 
-        if ($request->filled('category_id')) {
-            $query->whereHas('categories', function ($q) use ($request) {
-                $q->where('categories.id', $request->category_id);
-            });
-        }
+        $categories = Category::query()
+            ->orderBy('sort_order', 'asc')
+            ->withCount([
+                'slangs as filtered_slangs_count' => function (Builder $query) use ($filters): void {
+                    $this->applyIndexFilters($query, $filters, ['category_id']);
+                },
+            ])
+            ->get();
 
-        if ($request->filled('content_status')) {
-            $query->where('content_status', $request->content_status);
-        }
-
-        $slangs = $query->orderBy('sort_order', 'asc')
-            ->paginate(20)
-            ->withQueryString();
-
-        $categories = Category::orderBy('sort_order', 'asc')->get();
-
-        $statusCounts = Slang::query()
+        $statusCountsQuery = Slang::query();
+        $this->applyIndexFilters($statusCountsQuery, $filters, ['content_status']);
+        $statusCounts = $statusCountsQuery
             ->selectRaw('content_status, COUNT(*) as count')
             ->groupBy('content_status')
             ->pluck('count', 'content_status');
+
+        $categoryTotalQuery = Slang::query();
+        $this->applyIndexFilters($categoryTotalQuery, $filters, ['category_id']);
+        $categoryTotalCount = $categoryTotalQuery->count();
 
         return view('admin.slangs.index', [
             'pageTitle' => '욕/슬랭 관리',
             'slangs' => $slangs,
             'categories' => $categories,
             'statusCounts' => $statusCounts,
+            'categoryTotalCount' => $categoryTotalCount,
+            'hasAppliedFilters' => $hasAppliedFilters,
+            'isReorderable' => ! $hasAppliedFilters,
         ]);
     }
 
@@ -339,6 +333,71 @@ class SlangController extends Controller
                 'examples' => '예문 3개가 추가 생성되었습니다.',
             },
         ]);
+    }
+
+    /**
+     * @return array{search:string, level:?int, category_id:?int, content_status:?string}
+     */
+    private function extractIndexFilters(Request $request): array
+    {
+        return [
+            'search' => trim((string) $request->input('search')),
+            'level' => $request->filled('level') ? $request->integer('level') : null,
+            'category_id' => $request->filled('category_id') ? $request->integer('category_id') : null,
+            'content_status' => $request->filled('content_status') ? (string) $request->input('content_status') : null,
+        ];
+    }
+
+    /**
+     * @param  array{search:string, level:?int, category_id:?int, content_status:?string}  $filters
+     * @param  array<int, string>  $ignoredFilters
+     */
+    private function applyIndexFilters(Builder $query, array $filters, array $ignoredFilters = []): void
+    {
+        if (
+            ! in_array('search', $ignoredFilters, true)
+            && $filters['search'] !== ''
+            && mb_strlen($filters['search']) >= 2
+        ) {
+            $search = $filters['search'];
+
+            $query->where(function (Builder $subQuery) use ($search): void {
+                $subQuery->where('korean', 'like', "%{$search}%")
+                    ->orWhere('ai_generation_hint', 'like', "%{$search}%")
+                    ->orWhere('pronunciation', 'like', "%{$search}%")
+                    ->orWhere('english_description', 'like', "%{$search}%")
+                    ->orWhere('korean_description', 'like', "%{$search}%")
+                    ->orWhere('usage_context', 'like', "%{$search}%")
+                    ->orWhere('english_usage_context', 'like', "%{$search}%");
+            });
+        }
+
+        if (! in_array('level', $ignoredFilters, true) && $filters['level'] !== null) {
+            $query->where('level', $filters['level']);
+        }
+
+        if (! in_array('category_id', $ignoredFilters, true) && $filters['category_id'] !== null) {
+            $categoryId = $filters['category_id'];
+
+            $query->whereHas('categories', function (Builder $categoryQuery) use ($categoryId): void {
+                $categoryQuery->where('categories.id', $categoryId);
+            });
+        }
+
+        if (! in_array('content_status', $ignoredFilters, true) && $filters['content_status'] !== null) {
+            $query->where('content_status', $filters['content_status']);
+        }
+    }
+
+    /**
+     * @param  array{search:string, level:?int, category_id:?int, content_status:?string}  $filters
+     */
+    private function hasAppliedIndexFilters(array $filters): bool
+    {
+        return ($filters['search'] !== '' && mb_strlen($filters['search']) >= 2)
+            || $filters['level'] !== null
+            || $filters['category_id'] !== null
+            || $filters['content_status'] !== null;
     }
 
     private function createPendingSlang(string $word, int $sortOrder, ?string $aiGenerationHint = null): Slang
