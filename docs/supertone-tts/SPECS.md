@@ -2,7 +2,7 @@
 
 ## 개요
 
-관리자 화면에서 Supertone Text-to-Speech API를 직접 호출해 테스트 텍스트를 음성으로 변환하고, 결과를 mp3 파일로 저장한 뒤 바로 재생/다운로드할 수 있는 기능이다. DB 마이그레이션 없이 `public` 스토리지에 mp3와 메타데이터 JSON을 함께 저장한다.
+관리자 화면에서 Supertone Text-to-Speech API를 직접 호출해 테스트 텍스트를 음성으로 변환하고, 결과를 mp3 파일로 저장한 뒤 바로 재생/다운로드할 수 있는 기능이다. DB 마이그레이션 없이 기본 `s3` 디스크에 mp3와 메타데이터 JSON을 함께 저장한다.
 
 ## Routes
 
@@ -26,10 +26,11 @@
 ## 핵심 로직
 
 - 관리자 페이지는 브라우저가 직접 Supertone API를 호출하지 않고, Laravel 서버가 `x-sup-api-key` 헤더를 붙여 프록시처럼 요청한다.
-- 응답 오디오는 항상 `output_format=mp3`로 요청하고, `storage/app/public/audio/supertone-tts` 아래에 저장한다.
+- 응답 오디오는 항상 `output_format=mp3`로 요청하고, 기본 `s3` 디스크의 `audio/supertone-tts` prefix 아래에 저장한다.
 - 저장 시 mp3 파일과 함께 같은 basename의 JSON 메타데이터를 생성하여 최근 생성 목록을 DB 없이 유지한다.
 - 환경값에 `SUPERTONE_API_KEY`, `SUPERTONE_VOICE_ID`가 없으면 관리자 폼에서 직접 입력한 값으로도 테스트할 수 있다.
-- 최근 저장 목록은 메타데이터 JSON을 읽어와 텍스트 미리보기, 모델, 재생 시간, 파일 크기, 재생 링크를 렌더링한다.
+- 최근 저장 목록은 같은 스토리지 디스크의 메타데이터 JSON을 읽어와 텍스트 미리보기, 모델, 재생 시간, 파일 크기, 재생 링크를 렌더링한다.
+- private bucket에서도 재생할 수 있도록 설정에 따라 S3 temporary URL을 내려준다.
 
 ## API 엔드포인트
 
@@ -40,3 +41,4 @@
 | 날짜 | 변경 내용 | 비고 |
 |---|----|---|
 | 2026-03-30 | 관리자 Supertone TTS 테스트 페이지 추가 | 서버 프록시, mp3 저장, 최근 결과 목록 |
+| 2026-03-30 | 저장 디스크를 local public에서 S3로 전환 | Windows/Herd 로컬 공개 경로 404 대응 |

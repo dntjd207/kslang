@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -12,7 +13,7 @@ use Throwable;
 
 class SupertoneTtsService
 {
-    private const STORAGE_DIRECTORY = 'audio/supertone-tts';
+    private const DEFAULT_STORAGE_DIRECTORY = 'audio/supertone-tts';
 
     private const RECENT_RESULTS_LIMIT = 10;
 
@@ -53,6 +54,37 @@ class SupertoneTtsService
         return rtrim((string) config('services.supertone.base_url', 'https://supertoneapi.com'), '/');
     }
 
+    public function getStorageDisk(): string
+    {
+        return trim((string) config('services.supertone.storage_disk', 's3')) ?: 's3';
+    }
+
+    public function getStorageLocation(): string
+    {
+        $prefix = $this->getStoragePrefix();
+        $bucket = $this->getStorageBucket();
+
+        if ($this->getStorageDisk() === 's3') {
+            if ($bucket !== null) {
+                return 's3://'.$bucket.'/'.$prefix;
+            }
+
+            return 's3://'.$prefix;
+        }
+
+        return $this->getStorageDisk().'://'.$prefix;
+    }
+
+    public function usesTemporaryUrls(): bool
+    {
+        return (bool) config('services.supertone.use_temporary_url', true);
+    }
+
+    public function getTemporaryUrlMinutes(): int
+    {
+        return max(1, (int) config('services.supertone.temporary_url_minutes', 60));
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -83,6 +115,7 @@ class SupertoneTtsService
         $voiceId = $this->resolveVoiceId($validated['voice_id'] ?? null);
         $payload = $this->buildPayload($validated);
         $endpoint = $this->buildSpeechEndpoint($voiceId);
+        $disk = $this->storageDisk();
         $startedAt = microtime(true);
 
         $response = Http::timeout(120)
@@ -108,11 +141,11 @@ class SupertoneTtsService
         $metadataPath = $basePath.'.json';
         $savedAt = now();
 
-        if (! Storage::disk('public')->put($audioPath, $audioBinary)) {
-            throw new RuntimeException('생성된 mp3 파일을 저장하지 못했습니다.');
+        if (! $this->writeToDisk($disk, $audioPath, $audioBinary)) {
+            throw new RuntimeException('생성된 mp3 파일을 '.$this->getStorageDisk().' 디스크에 저장하지 못했습니다.');
         }
 
-        $fileSizeBytes = (int) Storage::disk('public')->size($audioPath);
+        $fileSizeBytes = (int) $disk->size($audioPath);
         $result = [
             'id' => pathinfo($audioPath, PATHINFO_FILENAME),
             'text' => (string) $validated['text'],
@@ -125,7 +158,7 @@ class SupertoneTtsService
             'audio_length_seconds' => $this->parseAudioLength($response->header('X-Audio-Length')),
             'request_duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
             'audio_path' => $audioPath,
-            'audio_url' => Storage::disk('public')->url($audioPath),
+            'audio_url' => $this->buildFileUrl($audioPath),
             'file_name' => basename($audioPath),
             'file_size_bytes' => $fileSizeBytes,
             'file_size_human' => $this->formatBytes($fileSizeBytes),
@@ -133,10 +166,15 @@ class SupertoneTtsService
             'saved_at_display' => $savedAt->format('Y-m-d H:i:s'),
             'endpoint' => $endpoint.'?output_format=mp3',
             'content_type' => (string) $response->header('Content-Type'),
+            'storage_disk' => $this->getStorageDisk(),
+            'storage_location' => $this->getStorageLocation(),
         ];
 
+        $metadata = $result;
+        unset($metadata['audio_url']);
+
         $metadataJson = json_encode(
-            $result,
+            $metadata,
             JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
         );
 
@@ -144,10 +182,10 @@ class SupertoneTtsService
             throw new RuntimeException('생성 결과 메타데이터를 인코딩하지 못했습니다.');
         }
 
-        $metadataSaved = Storage::disk('public')->put($metadataPath, $metadataJson);
+        $metadataSaved = $this->writeToDisk($disk, $metadataPath, $metadataJson);
 
         if (! $metadataSaved) {
-            throw new RuntimeException('생성 결과 메타데이터를 저장하지 못했습니다.');
+            throw new RuntimeException('생성 결과 메타데이터를 '.$this->getStorageDisk().' 디스크에 저장하지 못했습니다.');
         }
 
         return $result;
@@ -158,9 +196,14 @@ class SupertoneTtsService
      */
     public function getRecentResults(int $limit = self::RECENT_RESULTS_LIMIT): array
     {
-        $disk = Storage::disk('public');
+        try {
+            $disk = $this->storageDisk();
+            $files = $disk->allFiles($this->getStoragePrefix());
+        } catch (Throwable) {
+            return [];
+        }
 
-        return collect($disk->allFiles(self::STORAGE_DIRECTORY))
+        return collect($files)
             ->filter(static fn (string $path): bool => str_ends_with($path, '.json'))
             ->sortByDesc(static fn (string $path): int => $disk->lastModified($path))
             ->take($limit)
@@ -257,7 +300,7 @@ class SupertoneTtsService
         $datePath = now()->format('Y/m');
         $filename = 'tts-'.now()->format('Ymd-His').'-'.Str::lower((string) Str::uuid());
 
-        return self::STORAGE_DIRECTORY.'/'.$datePath.'/'.$filename;
+        return $this->getStoragePrefix().'/'.$datePath.'/'.$filename;
     }
 
     /**
@@ -265,7 +308,7 @@ class SupertoneTtsService
      */
     private function loadResultMetadata(string $metadataPath): ?array
     {
-        $disk = Storage::disk('public');
+        $disk = $this->storageDisk();
 
         if (! $disk->exists($metadataPath)) {
             return null;
@@ -302,7 +345,7 @@ class SupertoneTtsService
             'audio_length_seconds' => $decoded['audio_length_seconds'] ?? null,
             'request_duration_ms' => (int) ($decoded['request_duration_ms'] ?? 0),
             'audio_path' => $audioPath,
-            'audio_url' => $disk->url($audioPath),
+            'audio_url' => $this->buildFileUrl($audioPath),
             'file_name' => (string) ($decoded['file_name'] ?? basename($audioPath)),
             'file_size_bytes' => $fileSizeBytes,
             'file_size_human' => $this->formatBytes($fileSizeBytes),
@@ -310,6 +353,8 @@ class SupertoneTtsService
             'saved_at_display' => $this->formatSavedAt($decoded['saved_at'] ?? null, $metadataPath),
             'endpoint' => (string) ($decoded['endpoint'] ?? ''),
             'content_type' => (string) ($decoded['content_type'] ?? 'audio/mpeg'),
+            'storage_disk' => (string) ($decoded['storage_disk'] ?? $this->getStorageDisk()),
+            'storage_location' => (string) ($decoded['storage_location'] ?? $this->getStorageLocation()),
         ];
     }
 
@@ -331,7 +376,7 @@ class SupertoneTtsService
         }
 
         return Carbon::createFromTimestamp(
-            Storage::disk('public')->lastModified($metadataPath)
+            $this->storageDisk()->lastModified($metadataPath)
         )->toIso8601String();
     }
 
@@ -342,8 +387,64 @@ class SupertoneTtsService
                 ->format('Y-m-d H:i:s');
         } catch (Throwable) {
             return Carbon::createFromTimestamp(
-                Storage::disk('public')->lastModified($metadataPath)
+                $this->storageDisk()->lastModified($metadataPath)
             )->format('Y-m-d H:i:s');
+        }
+    }
+
+    private function getStoragePrefix(): string
+    {
+        return trim((string) config('services.supertone.storage_prefix', self::DEFAULT_STORAGE_DIRECTORY), '/')
+            ?: self::DEFAULT_STORAGE_DIRECTORY;
+    }
+
+    private function getStorageBucket(): ?string
+    {
+        return $this->normalizeNullableString(
+            config('filesystems.disks.'.$this->getStorageDisk().'.bucket')
+        );
+    }
+
+    private function storageDisk(): FilesystemAdapter
+    {
+        try {
+            return Storage::disk($this->getStorageDisk());
+        } catch (Throwable $e) {
+            throw new RuntimeException(
+                $this->getStorageDisk().' 디스크를 초기화하지 못했습니다. 필요한 스토리지 패키지와 설정을 확인해주세요.',
+                previous: $e
+            );
+        }
+    }
+
+    private function shouldUseTemporaryUrl(FilesystemAdapter $disk): bool
+    {
+        return $this->usesTemporaryUrls() && $disk->providesTemporaryUrls();
+    }
+
+    private function buildFileUrl(string $path): string
+    {
+        $disk = $this->storageDisk();
+
+        if ($this->shouldUseTemporaryUrl($disk)) {
+            return $disk->temporaryUrl(
+                $path,
+                now()->addMinutes($this->getTemporaryUrlMinutes())
+            );
+        }
+
+        return $disk->url($path);
+    }
+
+    private function writeToDisk(FilesystemAdapter $disk, string $path, string $contents): bool
+    {
+        try {
+            return (bool) $disk->put($path, $contents);
+        } catch (Throwable $e) {
+            throw new RuntimeException(
+                $this->getStorageDisk().' 디스크 저장 중 오류가 발생했습니다. AWS/S3 설정을 확인해주세요.',
+                previous: $e
+            );
         }
     }
 

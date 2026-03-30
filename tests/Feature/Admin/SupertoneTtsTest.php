@@ -24,6 +24,13 @@ beforeEach(function () {
 });
 
 it('shows the supertone tts admin page to authenticated admins', function () {
+    Storage::fake('s3');
+
+    config([
+        'services.supertone.storage_disk' => 's3',
+        'services.supertone.use_temporary_url' => false,
+    ]);
+
     $this->actingAs(supertoneAdminUser())
         ->get('/admin/supertone-tts')
         ->assertSuccessful()
@@ -32,12 +39,15 @@ it('shows the supertone tts admin page to authenticated admins', function () {
 });
 
 it('generates and stores an mp3 file using configured credentials', function () {
-    Storage::fake('public');
+    Storage::fake('s3');
 
     config([
         'services.supertone.api_key' => 'configured-api-key',
         'services.supertone.voice_id' => 'configured-voice-id',
         'services.supertone.base_url' => 'https://supertoneapi.com',
+        'services.supertone.storage_disk' => 's3',
+        'services.supertone.use_temporary_url' => false,
+        'filesystems.disks.s3.bucket' => 'tts-bucket',
     ]);
 
     Http::fake([
@@ -66,15 +76,17 @@ it('generates and stores an mp3 file using configured credentials', function () 
         ->assertJsonPath('result.voice_id', 'configured-voice-id')
         ->assertJsonPath('result.language', 'ko')
         ->assertJsonPath('result.model', 'sona_speech_1')
-        ->assertJsonPath('result.audio_length_seconds', 2.87);
+        ->assertJsonPath('result.audio_length_seconds', 2.87)
+        ->assertJsonPath('result.storage_disk', 's3')
+        ->assertJsonPath('result.storage_location', 's3://tts-bucket/audio/supertone-tts');
 
     $audioPath = $response->json('result.audio_path');
 
     expect($audioPath)->toBeString();
     expect($audioPath)->toContain('audio/supertone-tts/');
 
-    Storage::disk('public')->assertExists($audioPath);
-    Storage::disk('public')->assertExists(str_replace('.mp3', '.json', $audioPath));
+    Storage::disk('s3')->assertExists($audioPath);
+    Storage::disk('s3')->assertExists(str_replace('.mp3', '.json', $audioPath));
 
     Http::assertSent(function ($request) {
         $data = $request->data();
@@ -90,12 +102,15 @@ it('generates and stores an mp3 file using configured credentials', function () 
 });
 
 it('accepts api key and voice id directly from the request when env config is missing', function () {
-    Storage::fake('public');
+    Storage::fake('s3');
 
     config([
         'services.supertone.api_key' => null,
         'services.supertone.voice_id' => null,
         'services.supertone.base_url' => 'https://supertoneapi.com',
+        'services.supertone.storage_disk' => 's3',
+        'services.supertone.use_temporary_url' => false,
+        'filesystems.disks.s3.bucket' => 'tts-bucket',
     ]);
 
     Http::fake([

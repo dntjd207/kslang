@@ -48,6 +48,10 @@ return [
         'base_url' => env('SUPERTONE_BASE_URL', 'https://supertoneapi.com'),
         'default_language' => env('SUPERTONE_DEFAULT_LANGUAGE', 'ko'),
         'default_style' => env('SUPERTONE_DEFAULT_STYLE'),
+        'storage_disk' => env('SUPERTONE_STORAGE_DISK', 's3'),
+        'storage_prefix' => env('SUPERTONE_STORAGE_PREFIX', 'audio/supertone-tts'),
+        'use_temporary_url' => (bool) env('SUPERTONE_USE_TEMPORARY_URL', true),
+        'temporary_url_minutes' => (int) env('SUPERTONE_TEMPORARY_URL_MINUTES', 60),
     ],
 
 ];

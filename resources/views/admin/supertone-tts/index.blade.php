@@ -78,9 +78,12 @@
             </x-common.card>
 
             <x-common.card>
-                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">저장 위치</p>
-                <p class="mt-2 font-mono text-sm text-gray-800 break-all">storage/app/public/audio/supertone-tts</p>
-                <p class="mt-1 text-sm text-gray-500">최근 생성 결과는 아래 목록에서도 바로 재생할 수 있습니다.</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">저장 디스크</p>
+                <p class="mt-2 font-mono text-sm text-gray-800 break-all">{{ $configuration['storage_disk'] }}</p>
+                <p class="mt-1 font-mono text-xs text-gray-500 break-all">{{ $configuration['storage_location'] }}</p>
+                <p class="mt-1 text-sm text-gray-500">
+                    {{ $configuration['uses_temporary_url'] ? '최근 결과 재생 링크는 임시 URL로 생성됩니다.' : '스토리지 URL을 바로 사용합니다.' }}
+                </p>
             </x-common.card>
         </div>
 
@@ -281,7 +284,7 @@
 
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p class="text-sm text-gray-500">
-                            저장된 mp3는 공개 스토리지 경로에 보관되며, 결과 카드와 최근 목록에서 바로 재생할 수 있습니다.
+                            저장된 mp3는 설정된 스토리지 디스크에 보관되며, 결과 카드와 최근 목록에서 바로 재생할 수 있습니다.
                         </p>
 
                         <x-common.button id="generate-button" type="submit">
@@ -384,7 +387,7 @@
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500"></span>
-                            <span>최근 목록은 공개 스토리지의 메타데이터를 읽어오므로 DB나 마이그레이션 없이도 유지됩니다.</span>
+                            <span>최근 목록은 같은 스토리지 디스크의 메타데이터를 읽어오므로 DB나 마이그레이션 없이도 유지됩니다.</span>
                         </li>
                     </ul>
                 </x-common.card>
