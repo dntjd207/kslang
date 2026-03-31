@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\PageController;
 use App\Http\Controllers\Api\V1\SlangController;
 Route::prefix('v1')->group(function () {
+    
     Route::get('slangs/search', [SlangController::class, 'search']);
     Route::get('slangs/random', [SlangController::class, 'random']);
     Route::get('slangs/daily', [SlangController::class, 'daily']);
