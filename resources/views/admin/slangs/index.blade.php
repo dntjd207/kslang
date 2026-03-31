@@ -782,7 +782,7 @@
                         </div>
                         <textarea
                             readonly
-                            rows="32"
+                            rows="16"
                             class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700 focus:outline-none"
                             data-thread-field="${key}:content"
                         >${escapedContent}</textarea>
@@ -791,7 +791,7 @@
                                 <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-indigo-600">정답 / 답글</p>
                                 <textarea
                                     readonly
-                                    rows="16"
+                                    rows="8"
                                     class="w-full rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-sm leading-6 text-gray-700 focus:outline-none"
                                     data-thread-field="${key}:reply"
                                 >${escapedReply}</textarea>
