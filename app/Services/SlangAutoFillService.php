@@ -489,6 +489,8 @@ PROMPT;
                 'english_usage_context' => $data['english_usage_context'] ?? '',
                 'content_status' => Slang::STATUS_GENERATED,
                 'is_active' => false,
+                'thread_post_formats' => null,
+                'thread_post_generated_at' => null,
             ]);
 
             if (! empty($data['examples']) && is_array($data['examples'])) {

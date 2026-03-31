@@ -195,6 +195,7 @@
                                 @php
                                     $isPending = $slang->content_status === 'pending';
                                     $isGenerated = $slang->content_status === 'generated';
+                                    $hasThreadPostFormats = $slang->hasThreadPostFormats();
                                     $rowClass = $isPending ? 'bg-amber-50/50' : ($isGenerated ? 'bg-blue-50/50' : '');
                                     $inactiveClass = !$slang->is_active && !$isPending && !$isGenerated ? 'bg-gray-50 opacity-60' : '';
                                 @endphp
@@ -302,6 +303,17 @@
                                                     반려
                                                 </x-common.button>
                                             @endif
+                                            <x-common.button
+                                                type="button"
+                                                variant="{{ $hasThreadPostFormats ? 'success' : 'secondary' }}"
+                                                size="sm"
+                                                data-thread-content-action
+                                                data-slang-id="{{ $slang->id }}"
+                                                data-slang-name="{{ $slang->korean }}"
+                                                data-has-saved-formats="{{ $hasThreadPostFormats ? '1' : '0' }}"
+                                            >
+                                                {{ $hasThreadPostFormats ? 'Thread 보기' : 'Thread 생성' }}
+                                            </x-common.button>
                                             @if (!$isPending)
                                                 <a href="{{ route('admin.slangs.edit', $slang) }}">
                                                     <x-common.button variant="secondary" size="sm">수정</x-common.button>
@@ -488,6 +500,51 @@
         </div>
     </div>
 
+    <div id="thread-content-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-black/50 transition-opacity" onclick="closeThreadContentModal()"></div>
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <div class="flex items-start justify-between gap-4 border-b border-gray-200 px-6 py-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            <span id="thread-content-modal-title">Thread 콘텐츠</span>
+                        </h3>
+                        <p class="mt-1 text-sm text-gray-500">생성된 4가지 포맷은 저장되며, 나중에 다시 열어 바로 복사할 수 있습니다.</p>
+                        <p id="thread-content-generated-at" class="mt-2 hidden text-xs font-medium text-indigo-600"></p>
+                    </div>
+                    <button type="button" onclick="closeThreadContentModal()" class="text-gray-400 transition hover:text-gray-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                    <div id="thread-content-loading" class="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 px-6 py-16 text-center">
+                        <svg class="mb-4 h-8 w-8 animate-spin text-indigo-600" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        <p id="thread-content-loading-text" class="text-sm font-medium text-gray-700">Thread 콘텐츠를 준비하고 있습니다...</p>
+                    </div>
+
+                    <div id="thread-content-error" class="hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+
+                    <div id="thread-content-list" class="hidden grid grid-cols-1 gap-4 xl:grid-cols-2"></div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-3">
+                    <x-common.button type="button" variant="secondary" size="sm" id="regenerate-thread-content-btn">
+                        다시 생성
+                    </x-common.button>
+                    <x-common.button type="button" variant="secondary" size="sm" onclick="closeThreadContentModal()">
+                        닫기
+                    </x-common.button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- 토스트 컨테이너 --}}
     <div id="toast-container" class="fixed top-4 right-4 z-[60] space-y-2 pointer-events-none"></div>
 @endsection
@@ -512,6 +569,26 @@
             generated: '승인 대기',
             approved: 'AI 승인',
         };
+        const threadContentFormatMeta = {
+            word_drop: {
+                title: 'Format A - The Word Drop',
+                description: '단어 하나를 깊이 파고드는 바이럴형 포맷',
+            },
+            did_you_know: {
+                title: 'Format B - Did You Know?',
+                description: '교육형이면서 공유하기 좋은 포맷',
+            },
+            korean_vs_english: {
+                title: 'Format C - Korean vs English',
+                description: '비교/댓글 유도형 포맷',
+            },
+            quiz_poll: {
+                title: 'Format D - Quiz / Poll',
+                description: '댓글과 정답 리플을 유도하는 퀴즈 포맷',
+            },
+        };
+        let activeThreadContentSlangId = null;
+        let activeThreadContentSlangName = '';
 
         function extractErrorMessage(data, fallback) {
             if (data?.message) {
@@ -523,6 +600,40 @@
                 .find((message) => typeof message === 'string' && message.trim() !== '');
 
             return firstError ?? fallback;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        async function copyTextToClipboard(text) {
+            if (navigator.clipboard?.writeText && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+
+                return;
+            }
+
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', 'readonly');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+
+            const copied = document.execCommand('copy');
+            textarea.remove();
+
+            if (!copied) {
+                throw new Error('클립보드 복사에 실패했습니다.');
+            }
         }
 
         function showToast(message, type = 'success') {
@@ -550,6 +661,216 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
+
+        function buildThreadContentUrl(id, mode = 'show') {
+            return mode === 'generate'
+                ? `/admin/slangs/${id}/generate-thread-posts`
+                : `/admin/slangs/${id}/thread-posts`;
+        }
+
+        function setThreadContentModalTitle(name) {
+            const title = document.getElementById('thread-content-modal-title');
+            if (!title) {
+                return;
+            }
+
+            title.textContent = name ? `${name} Thread 콘텐츠` : 'Thread 콘텐츠';
+        }
+
+        function updateThreadContentGeneratedAt(generatedAt) {
+            const element = document.getElementById('thread-content-generated-at');
+            if (!element) {
+                return;
+            }
+
+            if (generatedAt) {
+                element.textContent = `최근 생성: ${generatedAt}`;
+                element.classList.remove('hidden');
+
+                return;
+            }
+
+            element.textContent = '';
+            element.classList.add('hidden');
+        }
+
+        function setThreadContentModalLoading(isLoading, message = 'Thread 콘텐츠를 준비하고 있습니다...') {
+            const loading = document.getElementById('thread-content-loading');
+            const loadingText = document.getElementById('thread-content-loading-text');
+            const error = document.getElementById('thread-content-error');
+            const list = document.getElementById('thread-content-list');
+
+            if (!loading || !loadingText || !error || !list) {
+                return;
+            }
+
+            loadingText.textContent = message;
+            loading.classList.toggle('hidden', !isLoading);
+
+            if (isLoading) {
+                error.classList.add('hidden');
+                error.textContent = '';
+                list.classList.add('hidden');
+                list.innerHTML = '';
+            }
+        }
+
+        function showThreadContentModalError(message) {
+            const loading = document.getElementById('thread-content-loading');
+            const error = document.getElementById('thread-content-error');
+            const list = document.getElementById('thread-content-list');
+
+            loading?.classList.add('hidden');
+            list?.classList.add('hidden');
+
+            if (!error) {
+                return;
+            }
+
+            error.textContent = message;
+            error.classList.remove('hidden');
+        }
+
+        function renderThreadContentCards(formats) {
+            const list = document.getElementById('thread-content-list');
+            const loading = document.getElementById('thread-content-loading');
+            const error = document.getElementById('thread-content-error');
+
+            if (!list) {
+                return;
+            }
+
+            const orderedKeys = ['word_drop', 'did_you_know', 'korean_vs_english', 'quiz_poll'];
+            list.innerHTML = orderedKeys.map((key) => {
+                const meta = threadContentFormatMeta[key] ?? {
+                    title: key,
+                    description: '',
+                };
+                const item = formats?.[key] ?? {};
+                const content = item.content ?? '';
+                const reply = item.reply ?? '';
+                const escapedContent = escapeHtml(content);
+                const escapedReply = escapeHtml(reply);
+
+                return `
+                    <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-800">${escapeHtml(meta.title)}</h4>
+                                <p class="mt-1 text-xs text-gray-500">${escapeHtml(meta.description)}</p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                    data-copy-thread-field="${key}:content"
+                                    data-copy-thread-label="${escapeHtml(meta.title)} 본문"
+                                >
+                                    본문 복사
+                                </button>
+                                ${reply ? `
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                        data-copy-thread-field="${key}:reply"
+                                        data-copy-thread-label="${escapeHtml(meta.title)} 답글"
+                                    >
+                                        답글 복사
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <textarea
+                            readonly
+                            class="min-h-52 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700 focus:outline-none"
+                            data-thread-field="${key}:content"
+                        >${escapedContent}</textarea>
+                        ${reply ? `
+                            <div class="mt-3">
+                                <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-indigo-600">정답 / 답글</p>
+                                <textarea
+                                    readonly
+                                    class="min-h-24 w-full rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-sm leading-6 text-gray-700 focus:outline-none"
+                                    data-thread-field="${key}:reply"
+                                >${escapedReply}</textarea>
+                            </div>
+                        ` : ''}
+                    </section>
+                `;
+            }).join('');
+
+            loading?.classList.add('hidden');
+            error?.classList.add('hidden');
+            list.classList.remove('hidden');
+        }
+
+        function updateThreadContentActionButton(button, hasSavedFormats) {
+            if (!button) {
+                return;
+            }
+
+            button.dataset.hasSavedFormats = hasSavedFormats ? '1' : '0';
+            button.textContent = hasSavedFormats ? 'Thread 보기' : 'Thread 생성';
+        }
+
+        function updateThreadContentActionButtonsForSlang(id, hasSavedFormats) {
+            document.querySelectorAll(`[data-thread-content-action][data-slang-id="${id}"]`)
+                .forEach((button) => updateThreadContentActionButton(button, hasSavedFormats));
+        }
+
+        async function loadThreadContent(id, mode = 'show', options = {}) {
+            const {
+                showSuccessToast = false,
+                loadingMessage = mode === 'generate'
+                    ? 'Thread 콘텐츠 4종을 생성하고 있습니다...'
+                    : '저장된 Thread 콘텐츠를 불러오고 있습니다...',
+            } = options;
+
+            setThreadContentModalLoading(true, loadingMessage);
+            updateThreadContentGeneratedAt(null);
+
+            try {
+                const response = await fetch(buildThreadContentUrl(id, mode), {
+                    method: mode === 'generate' ? 'POST' : 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                });
+
+                const data = await response.json().catch(() => null);
+
+                if (!response.ok || !data?.success) {
+                    if (mode === 'show' && response.status === 404) {
+                        return loadThreadContent(id, 'generate', {
+                            showSuccessToast: true,
+                            loadingMessage: '저장된 내용이 없어 새로 생성하고 있습니다...',
+                        });
+                    }
+
+                    throw new Error(extractErrorMessage(data, 'Thread 콘텐츠를 불러오지 못했습니다.'));
+                }
+
+                renderThreadContentCards(data.data?.formats ?? {});
+                updateThreadContentGeneratedAt(data.data?.generated_at ?? null);
+                updateThreadContentActionButtonsForSlang(id, Boolean(data.data?.has_saved_formats));
+
+                if (showSuccessToast && data.message) {
+                    showToast(data.message, 'success');
+                }
+            } catch (error) {
+                showThreadContentModalError(error.message ?? 'Thread 콘텐츠를 처리하지 못했습니다.');
+            }
+        }
+
+        window.closeThreadContentModal = function () {
+            closeModal('thread-content-modal');
+            activeThreadContentSlangId = null;
+            activeThreadContentSlangName = '';
+            setThreadContentModalTitle('');
+            updateThreadContentGeneratedAt(null);
+            setThreadContentModalLoading(true, 'Thread 콘텐츠를 준비하고 있습니다...');
+        };
 
         function updateRowVisualState(row) {
             const contentStatus = row.dataset.contentStatus;
@@ -876,6 +1197,72 @@
                 showToast(error.message || '등록에 실패했습니다.', 'error');
             } finally {
                 btn.disabled = false;
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            const actionButton = event.target.closest('[data-thread-content-action]');
+            if (!actionButton) {
+                return;
+            }
+
+            activeThreadContentSlangId = Number(actionButton.dataset.slangId ?? 0);
+            activeThreadContentSlangName = actionButton.dataset.slangName ?? '';
+
+            if (!activeThreadContentSlangId) {
+                showToast('대상 단어 정보를 찾지 못했습니다.', 'error');
+                return;
+            }
+
+            setThreadContentModalTitle(activeThreadContentSlangName);
+            openModal('thread-content-modal');
+
+            loadThreadContent(
+                activeThreadContentSlangId,
+                actionButton.dataset.hasSavedFormats === '1' ? 'show' : 'generate',
+                {
+                    showSuccessToast: actionButton.dataset.hasSavedFormats !== '1',
+                }
+            );
+        });
+
+        document.getElementById('regenerate-thread-content-btn')?.addEventListener('click', function () {
+            if (!activeThreadContentSlangId) {
+                showToast('다시 생성할 단어를 찾지 못했습니다.', 'error');
+                return;
+            }
+
+            const button = this;
+            button.disabled = true;
+
+            loadThreadContent(activeThreadContentSlangId, 'generate', {
+                showSuccessToast: true,
+                loadingMessage: 'Thread 콘텐츠를 다시 생성하고 있습니다...',
+            }).finally(() => {
+                button.disabled = false;
+            });
+        });
+
+        document.addEventListener('click', async function (event) {
+            const copyButton = event.target.closest('[data-copy-thread-field]');
+            if (!copyButton) {
+                return;
+            }
+
+            const fieldKey = copyButton.dataset.copyThreadField;
+            const label = copyButton.dataset.copyThreadLabel ?? 'Thread 콘텐츠';
+            const field = document.querySelector(`[data-thread-field="${fieldKey}"]`);
+
+            if (!field) {
+                showToast('복사할 콘텐츠를 찾지 못했습니다.', 'error');
+                return;
+            }
+
+            try {
+                await copyTextToClipboard(field.value ?? field.textContent ?? '');
+                showToast(`${label}를 클립보드에 복사했습니다.`, 'success');
+            } catch (error) {
+                showToast(error.message ?? '클립보드 복사에 실패했습니다.', 'error');
             }
         });
 

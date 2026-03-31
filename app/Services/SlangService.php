@@ -58,6 +58,7 @@ class SlangService
         return DB::transaction(function () use ($slang, $data) {
             $audioFile = $slang->audio_file;
             $audioDisk = $slang->audio_disk;
+            $shouldResetThreadPostFormats = $this->hasThreadContentSourceChanges($slang, $data);
 
             if (! empty($data['remove_audio']) && $audioFile) {
                 $this->audioFileService->delete($audioFile, $audioDisk);
@@ -74,7 +75,7 @@ class SlangService
                 $audioDisk = $this->audioFileService->getDefaultDisk();
             }
 
-            $slang->update([
+            $updatePayload = [
                 'korean' => $data['korean'],
                 'ai_generation_hint' => $this->normalizeNullableString($data['ai_generation_hint'] ?? null),
                 'pronunciation' => $data['pronunciation'],
@@ -87,7 +88,14 @@ class SlangService
                 'is_active' => $data['is_active'] ?? $slang->is_active,
                 'audio_file' => $audioFile,
                 'audio_disk' => $audioDisk,
-            ]);
+            ];
+
+            if ($shouldResetThreadPostFormats) {
+                $updatePayload['thread_post_formats'] = null;
+                $updatePayload['thread_post_generated_at'] = null;
+            }
+
+            $slang->update($updatePayload);
 
             $slang->categories()->sync($data['category_ids'] ?? []);
 
@@ -292,5 +300,68 @@ class SlangService
         $normalized = trim((string) $value);
 
         return $normalized !== '' ? $normalized : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function hasThreadContentSourceChanges(Slang $slang, array $data): bool
+    {
+        $currentFields = [
+            'korean' => trim((string) $slang->korean),
+            'ai_generation_hint' => $this->normalizeNullableString($slang->ai_generation_hint),
+            'pronunciation' => trim((string) $slang->pronunciation),
+            'english_description' => trim((string) $slang->english_description),
+            'korean_description' => trim((string) $slang->korean_description),
+            'level' => (int) $slang->level,
+            'usage_frequency' => trim((string) $slang->usage_frequency),
+            'usage_context' => trim((string) $slang->usage_context),
+            'english_usage_context' => trim((string) $slang->english_usage_context),
+        ];
+
+        $incomingFields = [
+            'korean' => trim((string) ($data['korean'] ?? '')),
+            'ai_generation_hint' => $this->normalizeNullableString($data['ai_generation_hint'] ?? null),
+            'pronunciation' => trim((string) ($data['pronunciation'] ?? '')),
+            'english_description' => trim((string) ($data['english_description'] ?? '')),
+            'korean_description' => trim((string) ($data['korean_description'] ?? '')),
+            'level' => (int) ($data['level'] ?? 0),
+            'usage_frequency' => trim((string) ($data['usage_frequency'] ?? '')),
+            'usage_context' => trim((string) ($data['usage_context'] ?? '')),
+            'english_usage_context' => trim((string) ($data['english_usage_context'] ?? '')),
+        ];
+
+        if ($currentFields !== $incomingFields) {
+            return true;
+        }
+
+        $currentExamples = $this->normalizeExamplesForThreadComparison(
+            $slang->examples()->get(['korean_example', 'english_example'])->toArray()
+        );
+
+        $incomingExamples = $this->normalizeExamplesForThreadComparison($data['examples'] ?? []);
+
+        return $currentExamples !== $incomingExamples;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $examples
+     * @return array<int, array{korean_example: string, english_example: string}>
+     */
+    private function normalizeExamplesForThreadComparison(array $examples): array
+    {
+        return collect($examples)
+            ->filter(fn ($example) => is_array($example))
+            ->map(function (array $example): array {
+                return [
+                    'korean_example' => trim((string) ($example['korean_example'] ?? '')),
+                    'english_example' => trim((string) ($example['english_example'] ?? '')),
+                ];
+            })
+            ->filter(function (array $example): bool {
+                return $example['korean_example'] !== '' || $example['english_example'] !== '';
+            })
+            ->values()
+            ->all();
     }
 }

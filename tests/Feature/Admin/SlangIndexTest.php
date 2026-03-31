@@ -3,6 +3,7 @@
 use App\Models\Category;
 use App\Models\Slang;
 use App\Models\User;
+use App\Services\GeminiService;
 use App\Services\SlangAutoFillService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
@@ -13,6 +14,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->withoutVite();
     $this->mock(SlangAutoFillService::class, function (MockInterface $mock): void {});
+    $this->mock(GeminiService::class, function (MockInterface $mock): void {});
 });
 
 function slangIndexAdminUser(): User
@@ -143,4 +145,30 @@ it('filters the slang list by category and disables drag sorting in filtered mod
         })
         ->assertViewHas('categoryTotalCount', 3)
         ->assertViewHas('isReorderable', false);
+});
+
+it('shows thread content action buttons for saved and unsaved slangs', function () {
+    createAdminSlang([
+        'korean' => '저장된 포맷 단어',
+        'thread_post_formats' => [
+            'word_drop' => [
+                'content' => '**저장된 포맷 단어** (jeo-jang-doen)',
+                'reply' => null,
+            ],
+        ],
+        'thread_post_generated_at' => now(),
+    ]);
+
+    createAdminSlang([
+        'korean' => '아직 미생성 단어',
+        'sort_order' => 1,
+    ]);
+
+    $this->actingAs(slangIndexAdminUser())
+        ->get(route('admin.slangs.index'))
+        ->assertSuccessful()
+        ->assertSee('Thread 보기')
+        ->assertSee('Thread 생성')
+        ->assertSee('data-thread-content-action', false)
+        ->assertSee('생성된 4가지 포맷은 저장되며, 나중에 다시 열어 바로 복사할 수 있습니다.');
 });

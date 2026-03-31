@@ -394,3 +394,18 @@
 ### 주요 결정 사항
 - 복사 내용은 저장된 DB 원본이 아니라 현재 폼 입력값을 기준으로 생성하여, 저장 전 수정 중인 내용도 바로 외부 AI 도구에 붙여넣을 수 있도록 설계
 - 공개 단어 상세 페이지가 없는 현재 구조를 고려해, 관리자가 실제 상세 콘텐츠를 다루는 수정 화면에 기능을 배치
+
+---
+
+### 작업 내용
+- 슬랭 목록 Thread 콘텐츠 4포맷 생성/저장 기능 추가
+  - `slangs` 테이블에 `thread_post_formats`, `thread_post_generated_at` 컬럼 추가 마이그레이션 생성
+  - `SlangThreadContentService` 생성: Gemini responseSchema로 Word Drop, Did You Know, Korean vs English, Quiz/Poll 4포맷 생성 및 저장
+  - 관리자 슬랭 목록 각 행에 `Thread 생성`/`Thread 보기` 버튼 추가
+  - 목록 화면 모달에서 저장된 포맷 조회, 본문 복사, 퀴즈 정답 리플 복사, 다시 생성 UX 구현
+  - 슬랭 수정 시 본문/설명/사용 상황/예문이 바뀌면 저장된 Thread 콘텐츠를 자동 초기화하도록 `SlangService` 보강
+  - Pest 테스트 추가: 서비스 생성/저장, 수정 시 무효화, 관리자 생성/조회 엔드포인트, 목록 버튼 노출
+
+### 주요 결정 사항
+- Thread 콘텐츠는 별도 테이블 대신 `slangs` JSON 컬럼에 저장하여 기존 슬랭 CRUD 흐름과 함께 관리하도록 설계
+- 저장된 Thread 콘텐츠는 오래된 정보 재사용을 막기 위해, 생성 근거가 되는 슬랭 본문/설명/예문이 바뀌면 자동 무효화하도록 설계

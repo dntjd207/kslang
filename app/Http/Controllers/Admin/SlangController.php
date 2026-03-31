@@ -17,6 +17,7 @@ use App\Models\SlangExample;
 use App\Services\AudioFileService;
 use App\Services\SlangAutoFillService;
 use App\Services\SlangService;
+use App\Services\SlangThreadContentService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
@@ -33,8 +34,7 @@ class SlangController extends Controller
 {
     public function __construct(
         private SlangService $slangService,
-        private AudioFileService $audioFileService,
-        private SlangAutoFillService $autoFillService
+        private AudioFileService $audioFileService
     ) {}
 
     public function index(Request $request): View
@@ -270,6 +270,46 @@ class SlangController extends Controller
         }
     }
 
+    public function showThreadPosts(Slang $slang): JsonResponse
+    {
+        if (! $slang->hasThreadPostFormats()) {
+            return response()->json([
+                'success' => false,
+                'message' => '저장된 Thread 콘텐츠가 없습니다. 먼저 생성해주세요.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => '저장된 Thread 콘텐츠를 불러왔습니다.',
+            'data' => $this->buildThreadPostsPayload($slang),
+        ]);
+    }
+
+    public function generateThreadPosts(Slang $slang, SlangThreadContentService $threadContentService): JsonResponse
+    {
+        try {
+            $slang = $threadContentService->generateAndStore($slang);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Thread 콘텐츠 4종을 생성하고 저장했습니다.',
+                'data' => $this->buildThreadPostsPayload($slang),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Thread content generation failed.', [
+                'slang_id' => $slang->id,
+                'error' => $e->getMessage(),
+            ]);
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Thread 콘텐츠 생성에 실패했습니다. 잠시 후 다시 시도해주세요.',
+            ], 500);
+        }
+    }
+
     /**
      * 단어 + 설명을 함께 등록하여 AI 생성 힌트를 저장.
      */
@@ -387,6 +427,8 @@ class SlangController extends Controller
             'english_usage_context' => '',
             'content_status' => Slang::STATUS_PENDING,
             'is_active' => false,
+            'thread_post_formats' => null,
+            'thread_post_generated_at' => null,
         ]);
 
         return response()->json([
@@ -398,15 +440,18 @@ class SlangController extends Controller
     /**
      * 편집 폼의 특정 섹션만 AI로 다시 생성하여 JSON으로 반환.
      */
-    public function regenerateSection(RegenerateSlangSectionRequest $request, Slang $slang): JsonResponse
-    {
+    public function regenerateSection(
+        RegenerateSlangSectionRequest $request,
+        Slang $slang,
+        SlangAutoFillService $autoFillService
+    ): JsonResponse {
         $validated = $request->validated();
 
         try {
             $data = match ($validated['section']) {
-                'descriptions' => $this->autoFillService->regenerateDescriptions($slang, $validated),
-                'usage_context' => $this->autoFillService->regenerateUsageContext($slang, $validated),
-                'examples' => $this->autoFillService->generateAdditionalExamples($slang, $validated, 3),
+                'descriptions' => $autoFillService->regenerateDescriptions($slang, $validated),
+                'usage_context' => $autoFillService->regenerateUsageContext($slang, $validated),
+                'examples' => $autoFillService->generateAdditionalExamples($slang, $validated, 3),
             };
         } catch (Throwable $e) {
             Log::error('Slang section regeneration failed.', [
@@ -517,6 +562,26 @@ class SlangController extends Controller
             'is_active' => false,
             'content_status' => Slang::STATUS_PENDING,
         ]);
+    }
+
+    /**
+     * @return array{
+     *     slang_id: int,
+     *     korean: string,
+     *     has_saved_formats: bool,
+     *     generated_at: ?string,
+     *     formats: array<string, mixed>
+     * }
+     */
+    private function buildThreadPostsPayload(Slang $slang): array
+    {
+        return [
+            'slang_id' => $slang->id,
+            'korean' => $slang->korean,
+            'has_saved_formats' => $slang->hasThreadPostFormats(),
+            'generated_at' => $slang->thread_post_generated_at?->format('Y-m-d H:i'),
+            'formats' => $slang->thread_post_formats ?? [],
+        ];
     }
 
     private function extractRequestExceptionMessage(RequestException $exception): string

@@ -17,6 +17,8 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | POST | /admin/slangs/reorder | SlangController@reorder | admin.slangs.reorder |
 | PATCH | /admin/slangs/{slang}/toggle | SlangController@toggle | admin.slangs.toggle |
 | DELETE | /admin/slangs/{slang}/audio | SlangController@destroyAudio | admin.slangs.destroyAudio |
+| GET | /admin/slangs/{slang}/thread-posts | SlangController@showThreadPosts | admin.slangs.threadPosts.show |
+| POST | /admin/slangs/{slang}/generate-thread-posts | SlangController@generateThreadPosts | admin.slangs.threadPosts.generate |
 | POST | /admin/slangs/{slang}/generate-audio | SlangController@generateAudio | admin.slangs.generateAudio |
 | POST | /admin/slangs/{slang}/generate-example-audio | SlangController@generateExampleAudio | admin.slangs.generateExampleAudio |
 
@@ -27,6 +29,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `app/Models/SlangExample.php` — SlangExample 모델
 - `app/Http/Controllers/Admin/SlangController.php` — CRUD + reorder + toggle
 - `app/Services/SlangService.php` — 트랜잭션 기반 생성/수정/삭제 + 슬랭/예문 mp3 생성 서비스
+- `app/Services/SlangThreadContentService.php` — Gemini 기반 Thread 포맷 4종 생성 및 저장 서비스
 - `app/Services/AudioFileService.php` — 업로드/생성 mp3 저장·삭제·교체·URL 반환 서비스
 - `app/Services/SupertoneTtsService.php` — Supertone TTS 합성 서비스
 - `app/Http/Requests/Admin/StoreSlangRequest.php` — 생성 유효성 검증
@@ -37,7 +40,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `routes/web.php` — 라우트 정의
 
 ### 프론트엔드
-- `resources/views/admin/slangs/index.blade.php` — 목록 (전체 목록 표시, 검색, 카테고리 탭/필터, 드래그 정렬, 토글, 삭제 모달)
+- `resources/views/admin/slangs/index.blade.php` — 목록 (전체 목록 표시, 검색, 카테고리 탭/필터, 드래그 정렬, 토글, 삭제 모달, Thread 콘텐츠 생성/보기 모달)
 - `resources/views/admin/slangs/create.blade.php` — 생성 폼
 - `resources/views/admin/slangs/edit.blade.php` — 수정 폼 + 카드뉴스용 복사 버튼
 - `resources/views/admin/slangs/_form.blade.php` — 공통 폼 Partial (기본정보 + 카테고리 + 음성 + 예문 include)
@@ -60,6 +63,8 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - **SlangService**: DB 트랜잭션으로 슬랭 + 카테고리 sync + 예문 동기화 + 음성 파일 처리를 원자적으로 실행
 - **기본 정보 입력**: 사용 상황은 한글(`usage_context`)과 영어 번역(`english_usage_context`)을 함께 관리
 - **AI 참고 설명**: 상세 등록 시 `ai_generation_hint`에 관리자 설명을 저장하고, AI 자동 생성/재생성 시 최신 유행어 의미 해석의 참고 정보로 사용
+- **Thread 콘텐츠 생성/저장**: 목록의 `Thread 생성` 버튼으로 단어별 4가지 Threads 포맷(Word Drop, Did You Know, Korean vs English, Quiz/Poll)을 Gemini로 생성하고 `slangs.thread_post_formats` JSON에 저장. 저장된 포맷은 `Thread 보기` 모달에서 다시 열어 본문/정답 리플을 즉시 복사 가능
+- **Thread 콘텐츠 무효화**: 슬랭 본문, 설명, 사용 상황, 예문 등 Thread 생성의 근거 데이터가 수정되면 저장된 Thread 포맷을 자동 초기화하여 오래된 카피가 재사용되지 않도록 함
 - **AI 부분 재생성**: 수정 화면에서 설명, 사용 상황, 예문 섹션별로 AI 재생성 가능. 결과는 즉시 DB 저장하지 않고 폼 값만 교체/추가하여 관리자 검토 후 저장
 - **카드뉴스용 복사**: 수정 화면에서 현재 폼 값을 기준으로 단어, 설명, 사용 상황, 예문을 보기 좋은 텍스트로 정리해 클립보드에 복사
 - **예문 동기화**: 기존 예문 id가 있으면 업데이트, 없으면 신규 생성, 전송되지 않은 기존 예문은 삭제. FormRequest의 `prepareForValidation()`에서 빈 예문 행 사전 필터링
@@ -93,3 +98,4 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-03-30 | 슬랭 목록 전체 보기 및 카테고리 탭 추가 | 페이지네이션 제거, 카테고리별 필터 가시성 개선, 필터 상태 정렬 비활성화 |
 | 2026-03-30 | 슬랭 본문/예문 mp3 생성 기능 추가 | Supertone speed 0.8 생성, 예문 audio_url API 준비 |
 | 2026-03-30 | 슬랭 수정 화면 카드뉴스용 복사 버튼 추가 | 현재 폼 값 기준으로 단어/설명/예문 복사 |
+| 2026-03-30 | 목록 화면 Thread 콘텐츠 4포맷 생성/저장 기능 추가 | 행별 버튼, 저장된 포맷 보기/복사 모달, 수정 시 자동 무효화 |

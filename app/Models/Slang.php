@@ -33,6 +33,8 @@ class Slang extends Model
         'sort_order',
         'is_active',
         'content_status',
+        'thread_post_formats',
+        'thread_post_generated_at',
     ];
 
     protected function casts(): array
@@ -41,6 +43,8 @@ class Slang extends Model
             'level' => 'integer',
             'sort_order' => 'integer',
             'is_active' => 'boolean',
+            'thread_post_formats' => 'array',
+            'thread_post_generated_at' => 'datetime',
         ];
     }
 
@@ -110,6 +114,19 @@ class Slang extends Model
                 'audio_disk' => null,
             ]);
         }
+    }
+
+    public function hasThreadPostFormats(): bool
+    {
+        return is_array($this->thread_post_formats) && $this->thread_post_formats !== [];
+    }
+
+    public function clearThreadPostFormats(): void
+    {
+        $this->update([
+            'thread_post_formats' => null,
+            'thread_post_generated_at' => null,
+        ]);
     }
 
     public function getLevelLabelAttribute(): string

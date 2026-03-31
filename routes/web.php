@@ -39,6 +39,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('slangs/reorder', [SlangController::class, 'reorder'])->name('slangs.reorder');
         Route::post('slangs/detailed-store', [SlangController::class, 'detailedStore'])->name('slangs.detailedStore');
         Route::post('slangs/quick-store', [SlangController::class, 'quickStore'])->name('slangs.quickStore');
+        Route::get('slangs/{slang}/thread-posts', [SlangController::class, 'showThreadPosts'])->name('slangs.threadPosts.show');
+        Route::post('slangs/{slang}/generate-thread-posts', [SlangController::class, 'generateThreadPosts'])->name('slangs.threadPosts.generate');
         Route::post('slangs/{slang}/generate-audio', [SlangController::class, 'generateAudio'])->name('slangs.generateAudio');
         Route::post('slangs/{slang}/generate-example-audio', [SlangController::class, 'generateExampleAudio'])->name('slangs.generateExampleAudio');
         Route::resource('slangs', SlangController::class)->except(['show']);
