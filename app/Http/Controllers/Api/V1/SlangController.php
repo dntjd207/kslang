@@ -30,7 +30,7 @@ class SlangController extends Controller
             });
         }
 
-        $slangs = $query->orderBy('sort_order', 'asc')
+        $slangs = $query->orderForApiFeed()
             ->paginate($perPage);
 
         return SlangResource::collection($slangs);
@@ -115,7 +115,7 @@ class SlangController extends Controller
                     ->orWhere('korean_description', 'like', "%{$keyword}%")
                     ->orWhere('english_usage_context', 'like', "%{$keyword}%");
             })
-            ->orderBy('sort_order', 'asc')
+            ->orderForApiFeed()
             ->paginate($perPage);
 
         return SlangResource::collection($slangs);

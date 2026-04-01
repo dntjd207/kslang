@@ -391,10 +391,7 @@ class SlangController extends Controller
             ], 422);
         }
 
-        $slang->update([
-            'content_status' => Slang::STATUS_APPROVED,
-            'is_active' => true,
-        ]);
+        $this->slangService->approveGeneratedSlang($slang);
 
         return response()->json([
             'success' => true,
@@ -414,22 +411,7 @@ class SlangController extends Controller
             ], 422);
         }
 
-        $this->slangService->deleteExamplesForReset($slang);
-        $slang->categories()->detach();
-
-        $slang->update([
-            'pronunciation' => '',
-            'english_description' => '',
-            'korean_description' => '',
-            'level' => 1,
-            'usage_frequency' => 'Occasional',
-            'usage_context' => '',
-            'english_usage_context' => '',
-            'content_status' => Slang::STATUS_PENDING,
-            'is_active' => false,
-            'thread_post_formats' => null,
-            'thread_post_generated_at' => null,
-        ]);
+        $this->slangService->rejectGeneratedSlang($slang);
 
         return response()->json([
             'success' => true,
@@ -561,6 +543,8 @@ class SlangController extends Controller
             'sort_order' => $sortOrder,
             'is_active' => false,
             'content_status' => Slang::STATUS_PENDING,
+            'is_new' => false,
+            'approved_at' => null,
         ]);
     }
 

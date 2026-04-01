@@ -12,6 +12,7 @@ class SlangResource extends JsonResource
         return [
             'id' => $this->id,
             'korean' => $this->korean,
+            'is_new' => $this->is_new,
             'pronunciation' => $this->pronunciation,
             'english_description' => $this->english_description,
             'korean_description' => $this->korean_description,

@@ -409,3 +409,21 @@
 ### 주요 결정 사항
 - Thread 콘텐츠는 별도 테이블 대신 `slangs` JSON 컬럼에 저장하여 기존 슬랭 CRUD 흐름과 함께 관리하도록 설계
 - 저장된 Thread 콘텐츠는 오래된 정보 재사용을 막기 위해, 생성 근거가 되는 슬랭 본문/설명/예문이 바뀌면 자동 무효화하도록 설계
+
+---
+
+## 2026-04-01
+
+### 작업 내용
+- 신규 단어 상태 관리 추가
+  - `slangs` 테이블에 `is_new`, `approved_at` 컬럼 추가 마이그레이션 생성
+  - AI 생성 슬랭 승인 시 `approved_at` 기록 + `is_new=true` 처리, 반려/재생성 대기 상태에서는 초기화
+  - `slang:expire-new` Artisan 커맨드 생성 및 hourly 스케줄 등록으로 승인 후 3일 지난 신규 표시 자동 해제
+  - 앱 API 목록/검색/카테고리 상세 목록 정렬을 신규 단어 우선(`is_new DESC`) + 신규 단어끼리 승인일 빠른 순으로 변경
+  - `SlangResource`에 `is_new` 추가, 단어 상세 응답에도 신규 여부 노출
+  - Pest 테스트 추가/보강: 승인 워크플로우, 신규 표시 만료, API 응답/정렬 검증
+  - `docs/README.md`, `docs/slangs/SPECS.md`, `docs/app-api/SPECS.md`, `docs/auto-fill/SPECS.md` 반영
+
+### 주요 결정 사항
+- 신규 단어 우선 노출은 기존 수동 등록 콘텐츠를 섞어 흔들지 않도록 `is_new DESC`를 1차 정렬로 두고, 신규 단어 내부에서만 `approved_at ASC`를 적용
+- 수동 등록(`complete`)과 승인 전 상태(`pending`, `generated`)는 `is_new=false`, `approved_at=null` 기본값을 유지하여 승인 워크플로우에서만 신규 노출 기간이 시작되도록 설계

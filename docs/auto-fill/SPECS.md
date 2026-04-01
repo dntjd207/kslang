@@ -17,7 +17,9 @@
 
 ### 백엔드
 - `app/Services/SlangAutoFillService.php` — Gemini API 호출, responseSchema 정의, 데이터 적용
+- `app/Services/SlangService.php` — 승인/반려 상태 전환, 신규 단어 만료 처리
 - `app/Console/Commands/AutoFillSlangsCommand.php` — `slang:auto-fill` Artisan 커맨드
+- `app/Console/Commands/ExpireNewSlangsCommand.php` — `slang:expire-new` Artisan 커맨드
 - `routes/console.php` — 5분 주기 스케줄 등록
 - `app/Http/Requests/Admin/DetailedStoreSlangRequest.php` — 상세 등록 유효성 검증
 - `app/Http/Requests/Admin/QuickStoreSlangRequest.php` — 빠른 등록 유효성 검증
@@ -28,6 +30,7 @@
 ### 마이그레이션
 - `database/migrations/2026_03_01_171448_add_content_status_to_slangs_table.php`
 - `database/migrations/2026_03_30_131922_add_ai_hint_to_slangs_table.php`
+- `database/migrations/2026_04_01_093109_add_new_status_fields_to_slangs_table.php`
 
 ### 프론트엔드
 - `resources/views/admin/slangs/index.blade.php` — 빠른 등록/상세 등록 모달, 승인/반려 버튼, 상태 뱃지, 상태 필터 탭
@@ -59,6 +62,8 @@ pending → (cron: Gemini API 호출) → generated → (관리자 승인) → a
 ### API 노출 조건
 - `is_active = true` AND `content_status IN ('complete', 'approved')`
 - `Slang::apiVisible()` 스코프로 통합 적용
+- AI 승인 시 `approved_at`을 기록하고 `is_new=true`로 설정
+- 승인 후 3일이 지나면 hourly 스케줄이 `is_new=false`로 되돌림
 
 ### Gemini responseSchema
 DB 구조에 맞는 JSON 스키마를 Gemini에 전달하여 구조화된 응답을 받음:
@@ -78,6 +83,8 @@ DB 구조에 맞는 JSON 스키마를 Gemini에 전달하여 구조화된 응답
 ### Cron 스케줄
 - 5분마다 실행: `Schedule::command('slang:auto-fill --limit=5')->everyFiveMinutes()`
 - 한 번에 최대 5건 처리 (API 부하 분산)
+- 매시간 실행: `Schedule::command('slang:expire-new --days=3')->hourly()`
+- 신규 단어 표시 기간은 승인 후 3일
 
 ## API 엔드포인트
 
@@ -91,3 +98,4 @@ DB 구조에 맞는 JSON 스키마를 Gemini에 전달하여 구조화된 응답
 | 2026-03-29 | 사용 상황 영어 번역 자동 생성 추가 | Gemini 프롬프트/responseSchema에 `english_usage_context` 반영 |
 | 2026-03-29 | 수정 화면 AI 섹션 재생성 추가 | 설명/사용 상황 재생성, 예문 3개 추가 생성, 저장 전 검토 방식 |
 | 2026-03-30 | 상세 등록(단어+설명) 추가 | `ai_generation_hint` 저장, AI 자동 생성/재생성 프롬프트에 힌트 반영 |
+| 2026-04-01 | 신규 단어 표시 기간 추가 | 승인 시 `approved_at` 저장 + `is_new=true`, 3일 경과 시 hourly 명령으로 자동 해제 |

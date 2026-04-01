@@ -95,6 +95,8 @@ it('uses the admin hint and stores english usage context when auto filling a pen
     expect($filledSlang->english_usage_context)->toBe($generatedPayload['english_usage_context'])
         ->and($filledSlang->ai_generation_hint)->toBe('온라인에서 억지로 트집을 잡거나 부당하게 몰아간다고 느낄 때 쓰는 최신 유행어다.')
         ->and($filledSlang->usage_context)->toBe($generatedPayload['usage_context'])
+        ->and($filledSlang->is_new)->toBeFalse()
+        ->and($filledSlang->approved_at)->toBeNull()
         ->and($filledSlang->thread_post_formats)->toBeNull()
         ->and($filledSlang->thread_post_generated_at)->toBeNull()
         ->and($filledSlang->content_status)->toBe(Slang::STATUS_GENERATED)

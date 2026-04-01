@@ -39,6 +39,8 @@ class SlangService
                 'english_usage_context' => $data['english_usage_context'],
                 'sort_order' => $maxSortOrder + 1,
                 'is_active' => $data['is_active'] ?? true,
+                'is_new' => false,
+                'approved_at' => null,
                 'audio_file' => $audioPath,
                 'audio_disk' => $audioDisk,
             ]);
@@ -202,6 +204,55 @@ class SlangService
         }
 
         $slang->examples()->delete();
+    }
+
+    public function approveGeneratedSlang(Slang $slang): Slang
+    {
+        $slang->update([
+            'content_status' => Slang::STATUS_APPROVED,
+            'is_active' => true,
+            'is_new' => true,
+            'approved_at' => now(),
+        ]);
+
+        return $slang->refresh();
+    }
+
+    public function rejectGeneratedSlang(Slang $slang): Slang
+    {
+        return DB::transaction(function () use ($slang) {
+            $this->deleteExamplesForReset($slang);
+            $slang->categories()->detach();
+
+            $slang->update([
+                'pronunciation' => '',
+                'english_description' => '',
+                'korean_description' => '',
+                'level' => 1,
+                'usage_frequency' => 'Occasional',
+                'usage_context' => '',
+                'english_usage_context' => '',
+                'content_status' => Slang::STATUS_PENDING,
+                'is_active' => false,
+                'is_new' => false,
+                'approved_at' => null,
+                'thread_post_formats' => null,
+                'thread_post_generated_at' => null,
+            ]);
+
+            return $slang->refresh();
+        });
+    }
+
+    public function expireNewSlangs(int $days = 3): int
+    {
+        return Slang::query()
+            ->where('is_new', true)
+            ->whereNotNull('approved_at')
+            ->where('approved_at', '<=', now()->subDays($days))
+            ->update([
+                'is_new' => false,
+            ]);
     }
 
     private function syncExamples(Slang $slang, array $examples): void

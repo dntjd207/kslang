@@ -33,7 +33,7 @@ class CategoryController extends Controller
         $slangs = $category->slangs()
             ->with(['categories', 'examples'])
             ->apiVisible()
-            ->orderBy('sort_order', 'asc')
+            ->orderForApiFeed()
             ->paginate($perPage);
 
         $category->loadCount(['slangs' => function ($query) {

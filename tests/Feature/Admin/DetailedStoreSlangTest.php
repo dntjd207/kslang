@@ -39,6 +39,8 @@ it('stores a pending slang with an admin provided ai hint', function () {
         ->and($slang->ai_generation_hint)->toBe('밈이나 농담을 너무 과하게 반복해서 분위기를 망칠 때 쓰는 유행어다.')
         ->and($slang->content_status)->toBe(Slang::STATUS_PENDING)
         ->and($slang->is_active)->toBeFalse()
+        ->and($slang->is_new)->toBeFalse()
+        ->and($slang->approved_at)->toBeNull()
         ->and($slang->pronunciation)->toBe('')
         ->and($slang->korean_description)->toBe('');
 });

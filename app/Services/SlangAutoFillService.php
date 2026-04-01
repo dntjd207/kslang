@@ -489,6 +489,8 @@ PROMPT;
                 'english_usage_context' => $data['english_usage_context'] ?? '',
                 'content_status' => Slang::STATUS_GENERATED,
                 'is_active' => false,
+                'is_new' => false,
+                'approved_at' => null,
                 'thread_post_formats' => null,
                 'thread_post_generated_at' => null,
             ]);

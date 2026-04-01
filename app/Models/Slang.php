@@ -33,6 +33,8 @@ class Slang extends Model
         'sort_order',
         'is_active',
         'content_status',
+        'is_new',
+        'approved_at',
         'thread_post_formats',
         'thread_post_generated_at',
     ];
@@ -43,6 +45,8 @@ class Slang extends Model
             'level' => 'integer',
             'sort_order' => 'integer',
             'is_active' => 'boolean',
+            'is_new' => 'boolean',
+            'approved_at' => 'datetime',
             'thread_post_formats' => 'array',
             'thread_post_generated_at' => 'datetime',
         ];
@@ -55,10 +59,25 @@ class Slang extends Model
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    public function scopeApiVisible($query)
+    public function scopeApiVisible(Builder $query): Builder
     {
         return $query->where('is_active', true)
             ->whereIn('content_status', [self::STATUS_COMPLETE, self::STATUS_APPROVED]);
+    }
+
+    /**
+     * 앱 API 목록용 정렬 스코프.
+     * 신규 단어를 먼저 보여주고, 신규 단어끼리는 승인일이 빠른 순으로 정렬한다.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeOrderForApiFeed(Builder $query): Builder
+    {
+        return $query->orderByDesc('is_new')
+            ->orderByRaw('case when is_new = 1 then approved_at end asc')
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'asc');
     }
 
     public function needsAutoFill(): bool

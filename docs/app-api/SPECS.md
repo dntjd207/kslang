@@ -2,7 +2,7 @@
 
 ## 개요
 
-안드로이드 앱에 데이터를 제공하는 REST API. X-API-Key 헤더 기반 인증, JSON 응답, Laravel API Resource 활용, Rate Limiting(분당 60회) 적용. 관리자에서 엔드포인트를 문서 형태로 확인하고 실제 요청 결과를 바로 볼 수 있는 API Playground 화면도 포함한다.
+안드로이드 앱에 데이터를 제공하는 REST API. X-API-Key 헤더 기반 인증, JSON 응답, Laravel API Resource 활용, Rate Limiting(분당 60회) 적용. 신규 승인 단어는 `is_new` 플래그로 표시하고, 목록 API에서 신규 단어를 우선 노출한다. 관리자에서 엔드포인트를 문서 형태로 확인하고 실제 요청 결과를 바로 볼 수 있는 API Playground 화면도 포함한다.
 
 ## Routes
 
@@ -69,15 +69,17 @@
 
 ### 욕/슬랭 목록 (GET /api/v1/slangs)
 - `is_active: true` 필터, categories·examples eager loading
+- 응답에 `is_new` 포함
+- 정렬: `is_new DESC` → 신규 단어끼리는 `approved_at ASC` → 이후 `sort_order ASC`
 - `audio_url`과 예문별 `audio_url`을 함께 포함하여 앱에서 바로 재생 가능
 - `level` (1~4), `category_id` 선택 필터
 - 페이지네이션: `per_page` 기본 20, 최대 100
-- `sort_order ASC` 정렬
 
 ### 욕/슬랭 검색 (GET /api/v1/slangs/search)
 - `q` 파라미터 2자 미만 → 빈 결과
 - korean, pronunciation, english_description, korean_description LIKE 검색
 - `is_active: true` 필터 + 페이지네이션
+- 목록과 동일하게 신규 단어 우선 정렬 적용
 
 ### 랜덤 슬랭 (GET /api/v1/slangs/random)
 - `count` 파라미터: 1~10 (기본 1)
@@ -92,6 +94,7 @@
 ### 욕/슬랭 상세 (GET /api/v1/slangs/{slang})
 - Route Model Binding, 비활성 시 404
 - categories·examples eager loading
+- 응답에 `is_new` 포함
 - 예문 응답에는 `audio_url`이 포함될 수 있음
 
 ### 카테고리 목록 (GET /api/v1/categories)
@@ -101,6 +104,7 @@
 ### 카테고리 상세 (GET /api/v1/categories/{category})
 - Route Model Binding으로 카테고리 조회
 - 카테고리 정보 + 소속 활성 슬랭 페이지네이션 반환
+- 소속 슬랭 목록은 신규 단어 우선 정렬 적용
 - 응답 형식: `{ "category": CategoryResource, "slangs": { "data": [...], "links": ..., "meta": ... } }`
 
 ### 앱 버전 (GET /api/v1/app/version)
@@ -134,3 +138,4 @@
 | 2026-03-01 | 앱 연동 보강 | Rate Limiting, 에러 JSON 일괄 처리, play_store_url 추가, random/daily/sync/categories/{id} 엔드포인트 추가 |
 | 2026-03-29 | 관리자 API Playground 추가 | 엔드포인트 목록 정리, 서버 프록시 기반 실시간 요청 테스트 화면 |
 | 2026-03-30 | 슬랭/예문 mp3 URL 응답 준비 | 예문 `audio_url` 추가, 슬랭 오디오 S3/URL 사용 준비 |
+| 2026-04-01 | 신규 단어 우선 노출 추가 | `is_new` 응답, 신규 단어 우선 정렬, 카테고리 상세 목록에도 동일 정렬 적용 |

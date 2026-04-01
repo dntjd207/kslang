@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('slang:auto-fill --limit=5')->everyFiveMinutes();
+Schedule::command('slang:expire-new --days=3')->hourly();

@@ -31,6 +31,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `app/Services/SlangService.php` — 트랜잭션 기반 생성/수정/삭제 + 슬랭/예문 mp3 생성 서비스
 - `app/Services/SlangThreadContentService.php` — Gemini 기반 Thread 포맷 4종 생성 및 저장 서비스
 - `app/Services/AudioFileService.php` — 업로드/생성 mp3 저장·삭제·교체·URL 반환 서비스
+- `app/Console/Commands/ExpireNewSlangsCommand.php` — 승인 후 3일이 지난 신규 슬랭 표시 해제
 - `app/Services/SupertoneTtsService.php` — Supertone TTS 합성 서비스
 - `app/Http/Requests/Admin/StoreSlangRequest.php` — 생성 유효성 검증
 - `app/Http/Requests/Admin/UpdateSlangRequest.php` — 수정 유효성 검증
@@ -57,6 +58,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `database/migrations/2026_03_29_144225_add_english_usage_context_to_slangs_table.php`
 - `database/migrations/2026_03_30_181911_add_audio_disk_to_slangs_table.php`
 - `database/migrations/2026_03_30_181912_add_audio_fields_to_slang_examples_table.php`
+- `database/migrations/2026_04_01_093109_add_new_status_fields_to_slangs_table.php`
 
 ## 핵심 로직
 
@@ -66,6 +68,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - **Thread 콘텐츠 생성/저장**: 목록의 `Thread 생성` 버튼으로 단어별 4가지 Threads 포맷(Word Drop, Did You Know, Korean vs English, Quiz/Poll)을 Gemini로 생성하고 `slangs.thread_post_formats` JSON에 저장. 저장된 포맷은 `Thread 보기` 모달에서 다시 열어 본문/정답 리플을 즉시 복사 가능
 - **Thread 콘텐츠 무효화**: 슬랭 본문, 설명, 사용 상황, 예문 등 Thread 생성의 근거 데이터가 수정되면 저장된 Thread 포맷을 자동 초기화하여 오래된 카피가 재사용되지 않도록 함
 - **AI 부분 재생성**: 수정 화면에서 설명, 사용 상황, 예문 섹션별로 AI 재생성 가능. 결과는 즉시 DB 저장하지 않고 폼 값만 교체/추가하여 관리자 검토 후 저장
+- **신규 단어 표시**: AI 생성 단어를 승인하면 `approved_at`을 기록하고 `is_new=true`로 전환. 승인 후 3일이 지나면 hourly 커맨드가 `is_new=false`로 자동 정리
 - **카드뉴스용 복사**: 수정 화면에서 현재 폼 값을 기준으로 단어, 설명, 사용 상황, 예문을 보기 좋은 텍스트로 정리해 클립보드에 복사
 - **예문 동기화**: 기존 예문 id가 있으면 업데이트, 없으면 신규 생성, 전송되지 않은 기존 예문은 삭제. FormRequest의 `prepareForValidation()`에서 빈 예문 행 사전 필터링
 - **슬랭 본문 mp3 생성**: 수정 화면에서 현재 입력된 한국어 욕을 기준으로 speed 0.8의 Supertone mp3를 생성하고, 생성 직후 `audio_file`, `audio_disk`를 저장해 즉시 재생 가능
@@ -99,3 +102,4 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-03-30 | 슬랭 본문/예문 mp3 생성 기능 추가 | Supertone speed 0.8 생성, 예문 audio_url API 준비 |
 | 2026-03-30 | 슬랭 수정 화면 카드뉴스용 복사 버튼 추가 | 현재 폼 값 기준으로 단어/설명/예문 복사 |
 | 2026-03-30 | 목록 화면 Thread 콘텐츠 4포맷 생성/저장 기능 추가 | 행별 버튼, 저장된 포맷 보기/복사 모달, 수정 시 자동 무효화 |
+| 2026-04-01 | 신규 단어 상태 관리 추가 | `is_new`, `approved_at` 컬럼과 승인 후 3일 자동 해제 스케줄 추가 |
