@@ -53,21 +53,6 @@
             <p class="mt-4 max-w-3xl text-lg leading-8 text-gray-600">
                 Explore structured articles built for English readers who want to understand what Korean slang really means, when people use it, and when not to use it.
             </p>
-
-            <div class="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur">
-                    <p class="text-sm font-medium text-gray-500">Published guides</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $blogPosts->total() }}</p>
-                </div>
-                <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur">
-                    <p class="text-sm font-medium text-gray-500">Categories</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $availableCategories->count() }}</p>
-                </div>
-                <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur">
-                    <p class="text-sm font-medium text-gray-500">Tags</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $availableTags->count() }}</p>
-                </div>
-            </div>
         </div>
     </section>
 
