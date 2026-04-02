@@ -149,6 +149,15 @@
                         {{ $slang->korean }} · {{ $slang->pronunciation }}
                     </p>
 
+                    @if ($slang->audio_url)
+                        <div class="mt-5 flex items-center gap-4 rounded-2xl border border-cyan-200 bg-cyan-50/60 px-5 py-4">
+                            <div class="shrink-0">
+                                <p class="text-sm font-semibold text-cyan-900">Listen to pronunciation</p>
+                            </div>
+                            <audio class="h-10 w-full min-w-0" controls preload="none" src="{{ $slang->audio_url }}"></audio>
+                        </div>
+                    @endif
+
                     <p class="mt-5 max-w-3xl text-lg leading-8 text-gray-600">
                         {{ $slang->public_summary }}
                     </p>
@@ -209,10 +218,10 @@
                     <h2 class="text-2xl font-bold text-gray-900">Meaning</h2>
                     <p class="mt-4 text-base leading-8 text-gray-700">{{ $slang->english_description }}</p>
 
-                    @if ($slang->audio_url)
-                        <div class="mt-6 rounded-2xl border border-cyan-200 bg-cyan-50/60 p-5">
-                            <p class="text-sm font-semibold text-cyan-900">Listen to pronunciation</p>
-                            <audio class="mt-3 w-full" controls preload="none" src="{{ $slang->audio_url }}"></audio>
+                    @if ($slang->korean_description)
+                        <div class="mt-6 rounded-2xl bg-gray-50 p-5">
+                            <p class="text-sm font-semibold text-gray-900">Korean editor note</p>
+                            <p class="mt-2 text-sm leading-7 text-gray-600">{{ $slang->korean_description }}</p>
                         </div>
                     @endif
                 </div>
@@ -237,6 +246,9 @@
                                 <div class="rounded-2xl border border-gray-200 p-5">
                                     <p class="font-semibold text-gray-900">{{ $example->korean_example }}</p>
                                     <p class="mt-2 text-sm leading-6 text-gray-600">{{ $example->english_example }}</p>
+                                    @if ($example->audio_url)
+                                        <audio class="mt-3 h-9 w-full" controls preload="none" src="{{ $example->audio_url }}"></audio>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
