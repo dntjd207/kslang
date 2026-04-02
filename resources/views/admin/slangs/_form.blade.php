@@ -192,6 +192,126 @@
                 </div>
             </div>
         </x-common.card>
+
+        <x-common.card title="공개 SEO" class="mt-6">
+            <div class="space-y-4">
+                <div class="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50/60 p-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <h3 class="text-sm font-semibold text-blue-900">공개 슬랭 상세 페이지</h3>
+                        <p class="mt-1 text-xs leading-5 text-blue-800/80">
+                            `/korean-slang/{slug}` 형태의 공개 URL로 사용됩니다. 비워두면 저장 시 발음 기준으로 자동 생성됩니다.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        @if ($isEdit)
+                            <x-common.button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                data-regenerate-section="seo_fields"
+                                data-loading-text="SEO 필드 생성 중..."
+                            >
+                                SEO 필드 AI 생성
+                            </x-common.button>
+                        @endif
+
+                        @if ($isEdit && $slang->public_slug)
+                            <a href="{{ route('slangs.public.show', ['slang' => $slang->public_slug]) }}"
+                               target="_blank"
+                               class="inline-flex items-center text-sm font-medium text-blue-700 transition hover:text-blue-900">
+                                공개 페이지 보기
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                <div>
+                    <label for="public_slug" class="block text-sm font-medium text-gray-700 mb-1">
+                        공개 슬러그
+                    </label>
+                    <input
+                        type="text"
+                        name="public_slug"
+                        id="public_slug"
+                        value="{{ old('public_slug', $isEdit ? $slang->public_slug : '') }}"
+                        placeholder="예: eok-kka"
+                        class="w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 {{ $errors->has('public_slug') ? 'border-red-500' : 'border-gray-300' }}"
+                    >
+                    @error('public_slug')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="public_title_en" class="block text-sm font-medium text-gray-700 mb-1">
+                        공개 영어 제목
+                    </label>
+                    <input
+                        type="text"
+                        name="public_title_en"
+                        id="public_title_en"
+                        value="{{ old('public_title_en', $isEdit ? $slang->public_title_en : '') }}"
+                        placeholder="예: What does 억까 mean in Korean?"
+                        class="w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 {{ $errors->has('public_title_en') ? 'border-red-500' : 'border-gray-300' }}"
+                    >
+                    @error('public_title_en')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="public_summary_en" class="block text-sm font-medium text-gray-700 mb-1">
+                        공개 영어 요약
+                    </label>
+                    <textarea
+                        name="public_summary_en"
+                        id="public_summary_en"
+                        rows="3"
+                        placeholder="공개 상세 페이지 상단에 노출할 영어 요약"
+                        class="w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y {{ $errors->has('public_summary_en') ? 'border-red-500' : 'border-gray-300' }}"
+                    >{{ old('public_summary_en', $isEdit ? $slang->public_summary_en : '') }}</textarea>
+                    @error('public_summary_en')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div>
+                        <label for="seo_title_en" class="block text-sm font-medium text-gray-700 mb-1">
+                            SEO 제목
+                        </label>
+                        <input
+                            type="text"
+                            name="seo_title_en"
+                            id="seo_title_en"
+                            value="{{ old('seo_title_en', $isEdit ? $slang->seo_title_en : '') }}"
+                            placeholder="검색 결과에 표시할 제목"
+                            class="w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 {{ $errors->has('seo_title_en') ? 'border-red-500' : 'border-gray-300' }}"
+                        >
+                        @error('seo_title_en')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="seo_description_en" class="block text-sm font-medium text-gray-700 mb-1">
+                            SEO 설명
+                        </label>
+                        <textarea
+                            name="seo_description_en"
+                            id="seo_description_en"
+                            rows="3"
+                            placeholder="검색 결과에 표시할 설명"
+                            class="w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y {{ $errors->has('seo_description_en') ? 'border-red-500' : 'border-gray-300' }}"
+                        >{{ old('seo_description_en', $isEdit ? $slang->seo_description_en : '') }}</textarea>
+                        @error('seo_description_en')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+        </x-common.card>
     </div>
 
     {{-- 우측: 카테고리 + 음성 (1/3) --}}

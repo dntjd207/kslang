@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Slang extends Model
 {
@@ -37,6 +38,11 @@ class Slang extends Model
         'approved_at',
         'thread_post_formats',
         'thread_post_generated_at',
+        'public_slug',
+        'public_title_en',
+        'public_summary_en',
+        'seo_title_en',
+        'seo_description_en',
     ];
 
     protected function casts(): array
@@ -63,6 +69,17 @@ class Slang extends Model
     {
         return $query->where('is_active', true)
             ->whereIn('content_status', [self::STATUS_COMPLETE, self::STATUS_APPROVED]);
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopePublicVisible(Builder $query): Builder
+    {
+        return $query->apiVisible()
+            ->whereNotNull('public_slug')
+            ->where('public_slug', '!=', '');
     }
 
     /**
@@ -99,6 +116,12 @@ class Slang extends Model
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'category_slang')
+            ->withTimestamps();
+    }
+
+    public function blogPosts(): BelongsToMany
+    {
+        return $this->belongsToMany(BlogPost::class)
             ->withTimestamps();
     }
 
@@ -168,5 +191,49 @@ class Slang extends Model
             4 => '극한맛',
             default => '알 수 없음',
         };
+    }
+
+    public function getPublicTitleAttribute(): string
+    {
+        $publicTitle = trim((string) $this->public_title_en);
+
+        if ($publicTitle !== '') {
+            return $publicTitle;
+        }
+
+        return "{$this->korean} meaning in Korean";
+    }
+
+    public function getPublicSummaryAttribute(): string
+    {
+        $summary = trim((string) $this->public_summary_en);
+
+        if ($summary !== '') {
+            return $summary;
+        }
+
+        return trim((string) $this->english_description);
+    }
+
+    public function getResolvedSeoTitleAttribute(): string
+    {
+        $seoTitle = trim((string) $this->seo_title_en);
+
+        if ($seoTitle !== '') {
+            return $seoTitle;
+        }
+
+        return Str::limit($this->public_title, 60, '');
+    }
+
+    public function getResolvedSeoDescriptionAttribute(): string
+    {
+        $seoDescription = trim((string) $this->seo_description_en);
+
+        if ($seoDescription !== '') {
+            return $seoDescription;
+        }
+
+        return Str::limit($this->public_summary, 160);
     }
 }

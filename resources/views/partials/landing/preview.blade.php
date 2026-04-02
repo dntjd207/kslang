@@ -18,7 +18,8 @@
         @if ($previewSlangs->isNotEmpty())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 @foreach ($previewSlangs as $slang)
-                    <div class="group bg-slate-900 border border-slate-800 rounded-3xl p-6 hover:border-slate-700 transition-all duration-300 relative overflow-hidden flex flex-col h-full hover:-translate-y-1 hover:shadow-[0_10px_40px_-15px_rgba(0,0,0,0.5)]">
+                    <a href="{{ route('slangs.public.show', ['slang' => $slang->public_slug]) }}"
+                       class="group bg-slate-900 border border-slate-800 rounded-3xl p-6 hover:border-slate-700 transition-all duration-300 relative overflow-hidden flex flex-col h-full hover:-translate-y-1 hover:shadow-[0_10px_40px_-15px_rgba(0,0,0,0.5)]">
                         <!-- Card Glow Effect on Hover -->
                         <div class="absolute -inset-1 bg-gradient-to-r from-fuchsia-500 to-cyan-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 rounded-3xl -z-10"></div>
                         
@@ -51,7 +52,7 @@
                                 {{ $slang->english_description }}
                             </p>
                         </div>
-                    </div>
+                    </a>
                 @endforeach
             </div>
         @else

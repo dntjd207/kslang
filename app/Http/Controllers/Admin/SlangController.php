@@ -434,6 +434,7 @@ class SlangController extends Controller
                 'descriptions' => $autoFillService->regenerateDescriptions($slang, $validated),
                 'usage_context' => $autoFillService->regenerateUsageContext($slang, $validated),
                 'examples' => $autoFillService->generateAdditionalExamples($slang, $validated, 3),
+                'seo_fields' => $autoFillService->generateSeoFields($slang, $validated),
             };
         } catch (Throwable $e) {
             Log::error('Slang section regeneration failed.', [
@@ -457,6 +458,7 @@ class SlangController extends Controller
                 'descriptions' => '설명이 다시 생성되었습니다.',
                 'usage_context' => '사용 상황이 다시 생성되었습니다.',
                 'examples' => '예문 3개가 추가 생성되었습니다.',
+                'seo_fields' => '공개 SEO 필드가 생성되었습니다.',
             },
         ]);
     }

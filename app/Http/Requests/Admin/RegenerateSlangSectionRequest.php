@@ -17,7 +17,7 @@ class RegenerateSlangSectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'section' => ['required', 'string', 'in:descriptions,usage_context,examples'],
+            'section' => ['required', 'string', 'in:descriptions,usage_context,examples,seo_fields'],
             'korean' => ['nullable', 'string', 'max:255'],
             'ai_generation_hint' => ['nullable', 'string', 'max:2000'],
             'pronunciation' => ['nullable', 'string', 'max:255'],
@@ -27,6 +27,13 @@ class RegenerateSlangSectionRequest extends FormRequest
             'usage_frequency' => ['nullable', 'string', 'in:Common,Occasional,Rare'],
             'usage_context' => ['nullable', 'string'],
             'english_usage_context' => ['nullable', 'string'],
+            'public_slug' => ['nullable', 'string', 'max:255'],
+            'public_title_en' => ['nullable', 'string', 'max:255'],
+            'public_summary_en' => ['nullable', 'string', 'max:1000'],
+            'seo_title_en' => ['nullable', 'string', 'max:255'],
+            'seo_description_en' => ['nullable', 'string', 'max:500'],
+            'category_names' => ['nullable', 'array'],
+            'category_names.*' => ['string', 'max:255'],
             'examples' => ['nullable', 'array'],
             'examples.*.id' => ['nullable', 'integer'],
             'examples.*.korean_example' => ['nullable', 'string', 'max:500'],
@@ -47,6 +54,12 @@ class RegenerateSlangSectionRequest extends FormRequest
             'pronunciation.max' => '영어 발음은 255자 이하여야 합니다.',
             'level.between' => '레벨은 1~4 사이여야 합니다.',
             'usage_frequency.in' => '올바른 사용 빈도를 선택해주세요.',
+            'public_slug.max' => '공개 슬러그는 255자 이하여야 합니다.',
+            'public_title_en.max' => '공개 영어 제목은 255자 이하여야 합니다.',
+            'public_summary_en.max' => '공개 영어 요약은 1000자 이하여야 합니다.',
+            'seo_title_en.max' => 'SEO 제목은 255자 이하여야 합니다.',
+            'seo_description_en.max' => 'SEO 설명은 500자 이하여야 합니다.',
+            'category_names.*.max' => '카테고리 이름은 255자 이하여야 합니다.',
             'examples.*.korean_example.max' => '한국어 예문은 500자 이하여야 합니다.',
             'examples.*.english_example.max' => '영어 예문은 500자 이하여야 합니다.',
         ];

@@ -16,7 +16,7 @@
 - **mews/purifier**: 3.4 (HTMLPurifier 래퍼, HTML 콘텐츠 정화)
 
 ## 외부 API
-- **Google Gemini API**: gemini-3.1-pro-preview 모델, Thinking 지원, 선택적 responseSchema
+- **Google Gemini API**: gemini-3.1-pro-preview(콘텐츠 생성) + gemini-3.1-flash-lite-preview(영문 번역) 모델, Thinking 지원, 선택적 responseSchema
 - **Supertone API**: 관리자 TTS 테스트용 서버 프록시 호출, mp3 저장 및 재생
 
 ## 개발 도구

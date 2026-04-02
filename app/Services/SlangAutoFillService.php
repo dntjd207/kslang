@@ -7,6 +7,7 @@ use App\Models\Slang;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class SlangAutoFillService
 {
@@ -249,6 +250,101 @@ PROMPT;
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array{
+     *     public_slug: string,
+     *     public_title_en: string,
+     *     public_summary_en: string,
+     *     seo_title_en: string,
+     *     seo_description_en: string
+     * }
+     */
+    public function generateSeoFields(Slang $slang, array $context = []): array
+    {
+        $slangContext = $this->buildSlangContext($slang, $context);
+        $categoriesText = $slangContext['category_names'] !== []
+            ? implode(', ', $slangContext['category_names'])
+            : '(카테고리 없음)';
+
+        $prompt = <<<PROMPT
+당신은 영어권 검색 유입을 노리는 Korean slang SEO 편집자입니다.
+아래 슬랭 정보를 바탕으로 공개 슬랭 상세 페이지용 SEO 필드를 작성해주세요.
+
+## 대상 단어
+- korean: {$slangContext['korean']}
+- pronunciation: {$slangContext['pronunciation']}
+- level: {$slangContext['level']}
+- usage_frequency: {$slangContext['usage_frequency']}
+- categories: {$categoriesText}
+
+{$this->buildAiHintSection($slangContext['ai_generation_hint'])}
+
+## 참고 설명
+- english_description: {$slangContext['english_description']}
+- korean_description: {$slangContext['korean_description']}
+- usage_context: {$slangContext['usage_context']}
+- english_usage_context: {$slangContext['english_usage_context']}
+
+## 현재 SEO 필드
+- current public_slug: {$slangContext['public_slug']}
+- current public_title_en: {$slangContext['public_title_en']}
+- current public_summary_en: {$slangContext['public_summary_en']}
+- current seo_title_en: {$slangContext['seo_title_en']}
+- current seo_description_en: {$slangContext['seo_description_en']}
+
+## 작성 규칙
+1. public_slug는 영어 소문자/숫자/하이픈만 사용한 짧은 slug로 작성해주세요.
+2. public_title_en은 영어권 사용자가 검색할 만한 자연스러운 상세 페이지 제목으로 작성해주세요.
+3. public_summary_en은 2~3문장 요약으로 작성해주세요.
+4. seo_title_en은 60자 내외로 작성해주세요.
+5. seo_description_en은 140~160자 내외로 작성해주세요.
+6. 과장된 clickbait는 금지하고, 실제 의미/뉘앙스/주의점을 자연스럽게 반영해주세요.
+7. JSON만 반환해주세요.
+PROMPT;
+
+        $data = $this->generateStructuredData($prompt, [
+            'type' => 'OBJECT',
+            'properties' => [
+                'public_slug' => [
+                    'type' => 'STRING',
+                    'description' => 'SEO-friendly slug using lowercase letters, numbers, and hyphens only',
+                ],
+                'public_title_en' => [
+                    'type' => 'STRING',
+                    'description' => 'Public English title for the slang detail page',
+                ],
+                'public_summary_en' => [
+                    'type' => 'STRING',
+                    'description' => '2-3 sentence public English summary for the slang page',
+                ],
+                'seo_title_en' => [
+                    'type' => 'STRING',
+                    'description' => 'SEO title around 60 characters',
+                ],
+                'seo_description_en' => [
+                    'type' => 'STRING',
+                    'description' => 'SEO meta description around 140-160 characters',
+                ],
+            ],
+            'required' => [
+                'public_slug',
+                'public_title_en',
+                'public_summary_en',
+                'seo_title_en',
+                'seo_description_en',
+            ],
+        ]);
+
+        return [
+            'public_slug' => Str::slug((string) ($data['public_slug'] ?? '')) ?: $this->resolvePublicSlug($slang, $slangContext['pronunciation']),
+            'public_title_en' => trim((string) ($data['public_title_en'] ?? '')),
+            'public_summary_en' => trim((string) ($data['public_summary_en'] ?? '')),
+            'seo_title_en' => trim((string) ($data['seo_title_en'] ?? '')),
+            'seo_description_en' => trim((string) ($data['seo_description_en'] ?? '')),
+        ];
+    }
+
     private function buildPrompt(string $koreanWord, array $existingCategories, ?string $aiGenerationHint = null): string
     {
         $categoryList = ! empty($existingCategories)
@@ -388,6 +484,12 @@ PROMPT;
      *     usage_frequency: string,
      *     usage_context: string,
      *     english_usage_context: string,
+     *     public_slug: string,
+     *     public_title_en: string,
+     *     public_summary_en: string,
+     *     seo_title_en: string,
+     *     seo_description_en: string,
+     *     category_names: list<string>,
      *     examples: Collection<int, array{korean_example: string, english_example: string}>
      * }
      */
@@ -416,6 +518,16 @@ PROMPT;
             'usage_frequency' => $this->resolveContextValue($context, 'usage_frequency', $slang->usage_frequency),
             'usage_context' => $this->resolveContextValue($context, 'usage_context', $slang->usage_context),
             'english_usage_context' => $this->resolveContextValue($context, 'english_usage_context', $slang->english_usage_context),
+            'public_slug' => $this->resolveContextValue($context, 'public_slug', $slang->public_slug),
+            'public_title_en' => $this->resolveContextValue($context, 'public_title_en', $slang->public_title_en),
+            'public_summary_en' => $this->resolveContextValue($context, 'public_summary_en', $slang->public_summary_en),
+            'seo_title_en' => $this->resolveContextValue($context, 'seo_title_en', $slang->seo_title_en),
+            'seo_description_en' => $this->resolveContextValue($context, 'seo_description_en', $slang->seo_description_en),
+            'category_names' => collect($context['category_names'] ?? $slang->categories()->pluck('name')->all())
+                ->map(fn ($name) => trim((string) $name))
+                ->filter(fn ($name) => $name !== '')
+                ->values()
+                ->all(),
             'examples' => $currentExamples,
         ];
     }
@@ -487,6 +599,7 @@ PROMPT;
                 'usage_frequency' => $frequency,
                 'usage_context' => $data['usage_context'] ?? '',
                 'english_usage_context' => $data['english_usage_context'] ?? '',
+                'public_slug' => $this->resolvePublicSlug($slang, (string) ($data['pronunciation'] ?? '')),
                 'content_status' => Slang::STATUS_GENERATED,
                 'is_active' => false,
                 'is_new' => false,
@@ -519,5 +632,35 @@ PROMPT;
 
             return $slang->fresh(['categories', 'examples']);
         });
+    }
+
+    private function resolvePublicSlug(Slang $slang, string $pronunciation): string
+    {
+        $currentSlug = trim((string) $slang->public_slug);
+
+        if ($currentSlug !== '') {
+            return $currentSlug;
+        }
+
+        $base = Str::slug($pronunciation);
+
+        if ($base === '') {
+            $base = 'slang';
+        }
+
+        $candidate = $base;
+        $suffix = 2;
+
+        while (
+            Slang::query()
+                ->where('public_slug', $candidate)
+                ->where('id', '!=', $slang->id)
+                ->exists()
+        ) {
+            $candidate = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $candidate;
     }
 }

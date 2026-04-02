@@ -427,3 +427,39 @@
 ### 주요 결정 사항
 - 신규 단어 우선 노출은 기존 수동 등록 콘텐츠를 섞어 흔들지 않도록 `is_new DESC`를 1차 정렬로 두고, 신규 단어 내부에서만 `approved_at ASC`를 적용
 - 수동 등록(`complete`)과 승인 전 상태(`pending`, `generated`)는 `is_new=false`, `approved_at=null` 기본값을 유지하여 승인 워크플로우에서만 신규 노출 기간이 시작되도록 설계
+
+---
+
+### 작업 내용
+- F-013 SEO 블로그 & 공개 슬랭 허브 구현
+  - `blog_posts`, `blog_post_slang` 테이블과 `slangs` 공개 SEO 필드(`public_slug`, `public_title_en`, `public_summary_en`, SEO 메타) 추가
+  - 관리자 블로그 CRUD 화면 구현: 한국어 기준 작성, TinyMCE 구조화 에디터, 임시 저장/발행/보관, 관련 슬랭 연결, SEO 미리보기
+  - AI 초안/번역 흐름 구현: 현재 폼 기준 한국어+영어 초안 생성, 한국어 기준 영어 재번역, 번역 모델 `gemini-3.1-flash-lite-preview` 분리
+  - 공개 `/blog`, `/blog/{slug}`, `/korean-slang`, `/korean-slang/{public_slug}` 페이지 구현
+  - 랜딩 미리보기 카드에서 공개 슬랭 상세로 링크 연결, 공개 navbar/footer에 Blog/Korean Slang 링크 추가
+  - `sitemap.xml`에 blog/slang 공개 URL 포함, Pest 테스트 4종 추가
+
+### 주요 결정 사항
+- 운영 기준 원본은 한국어, 공개 노출은 영어로 분리하고 `translation_status`로 영문 최신성(`none/synced/outdated`)을 별도 관리
+- 블로그 작성은 별도 의존성 추가 없이 기존 TinyMCE + HTMLPurifier + GeminiService 위에 얹고, 구조화된 Heading 중심 에디터 구성으로 SEO 작성 UX를 확보
+- 공개 슬랭 상세는 기존 `slangs` 데이터를 확장해 재사용하고, 블로그와 슬랭을 다대다로 연결해 SEO 내부 링크 허브 구조를 형성
+
+---
+
+## 2026-04-02
+
+### 작업 내용
+- F-013 블로그 taxonomy/자동 임시저장 확장
+  - `blog_posts`에 `category_name`, `tag_names`, `last_auto_saved_at` 필드 반영
+  - 관리자 블로그 작성 화면에 카테고리/태그 입력, tag chip preview, autosave 상태 카드 추가
+  - `/admin/blog-posts/autosave` 서버 자동 임시저장 엔드포인트와 create->edit 전환(history.replaceState + form action 전환) 구현
+  - 관리자/공개 블로그 목록에 카테고리/태그 필터 및 배지 표시 추가
+  - AI 초안/번역 프롬프트에 category/tag 맥락 반영
+- F-003 슬랭 공개 SEO 필드 AI 생성 추가
+  - `SEO 필드 AI 생성` 버튼으로 `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en` 생성
+  - 결과는 기존 섹션 재생성과 동일하게 DB 즉시 저장 없이 폼에만 반영
+  - 관련 Pest 테스트 추가/보강
+
+### 주요 결정 사항
+- 블로그 카테고리/태그는 별도 taxonomy 모델/관리 기능 대신 `blog_posts` raw 필드로 먼저 구현하여 autosave와 충돌 없이 단순하게 운영하도록 설계
+- 서버 자동 임시저장은 새 글, draft, archived 글에만 허용하고, published 글은 공개 중인 콘텐츠를 타이핑 단계에서 바꾸지 않도록 수동 저장만 허용

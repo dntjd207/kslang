@@ -34,13 +34,18 @@ class GeminiService
      *
      * @throws ConnectionException
      */
-    public function generate(string $prompt, ?array $responseSchema = null, string $thinkingLevel = 'HIGH'): GeminiResponse
-    {
+    public function generate(
+        string $prompt,
+        ?array $responseSchema = null,
+        string $thinkingLevel = 'HIGH',
+        ?string $model = null
+    ): GeminiResponse {
         $payload = $this->buildPayload($prompt, $responseSchema, $thinkingLevel);
+        $resolvedModel = $model ?? $this->model;
 
         $response = Http::timeout(120)
             ->withQueryParameters(['key' => $this->apiKey])
-            ->post("{$this->baseUrl}/models/{$this->model}:generateContent", $payload);
+            ->post("{$this->baseUrl}/models/{$resolvedModel}:generateContent", $payload);
 
         if ($response->failed()) {
             throw new RuntimeException(
@@ -58,16 +63,21 @@ class GeminiService
      *
      * @throws ConnectionException
      */
-    public function streamGenerate(string $prompt, ?array $responseSchema = null, string $thinkingLevel = 'HIGH'): GeminiResponse
-    {
+    public function streamGenerate(
+        string $prompt,
+        ?array $responseSchema = null,
+        string $thinkingLevel = 'HIGH',
+        ?string $model = null
+    ): GeminiResponse {
         $payload = $this->buildPayload($prompt, $responseSchema, $thinkingLevel);
+        $resolvedModel = $model ?? $this->model;
 
         $response = Http::timeout(120)
             ->withQueryParameters([
                 'key' => $this->apiKey,
                 'alt' => 'sse',
             ])
-            ->post("{$this->baseUrl}/models/{$this->model}:streamGenerateContent", $payload);
+            ->post("{$this->baseUrl}/models/{$resolvedModel}:streamGenerateContent", $payload);
 
         if ($response->failed()) {
             throw new RuntimeException(

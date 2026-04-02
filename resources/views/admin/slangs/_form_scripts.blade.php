@@ -281,6 +281,12 @@ function collectExamplesFromForm() {
         .filter((example) => example.korean_example.trim() !== '' || example.english_example.trim() !== '');
 }
 
+function collectSelectedCategoryNames() {
+    return Array.from(document.querySelectorAll('input[name="category_ids[]"]:checked'))
+        .map((checkbox) => checkbox.closest('label')?.querySelector('span')?.textContent?.trim() ?? '')
+        .filter((name) => name !== '');
+}
+
 function buildCardNewsCopyText() {
     const korean = getInputValue('korean');
     const pronunciation = getInputValue('pronunciation');
@@ -389,6 +395,12 @@ function getRegenerationPayload(section) {
         usage_frequency: document.getElementById('usage_frequency')?.value ?? '',
         usage_context: document.getElementById('usage_context')?.value ?? '',
         english_usage_context: document.getElementById('english_usage_context')?.value ?? '',
+        public_slug: document.getElementById('public_slug')?.value ?? '',
+        public_title_en: document.getElementById('public_title_en')?.value ?? '',
+        public_summary_en: document.getElementById('public_summary_en')?.value ?? '',
+        seo_title_en: document.getElementById('seo_title_en')?.value ?? '',
+        seo_description_en: document.getElementById('seo_description_en')?.value ?? '',
+        category_names: collectSelectedCategoryNames(),
         examples: collectExamplesFromForm(),
     };
 }
@@ -513,6 +525,16 @@ function applyRegeneratedSection(section, data) {
         if (appendedCount === 0) {
             throw new Error('예문을 더 추가할 수 없습니다.');
         }
+
+        return;
+    }
+
+    if (section === 'seo_fields') {
+        document.getElementById('public_slug').value = data.public_slug ?? '';
+        document.getElementById('public_title_en').value = data.public_title_en ?? '';
+        document.getElementById('public_summary_en').value = data.public_summary_en ?? '';
+        document.getElementById('seo_title_en').value = data.seo_title_en ?? '';
+        document.getElementById('seo_description_en').value = data.seo_description_en ?? '';
     }
 }
 

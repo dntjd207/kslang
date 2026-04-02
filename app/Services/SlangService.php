@@ -6,6 +6,7 @@ use App\Models\Slang;
 use App\Models\SlangExample;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SlangService
 {
@@ -37,6 +38,13 @@ class SlangService
                 'usage_frequency' => $data['usage_frequency'],
                 'usage_context' => $data['usage_context'],
                 'english_usage_context' => $data['english_usage_context'],
+                'public_slug' => $this->generateUniquePublicSlug(
+                    $data['public_slug'] ?? $data['pronunciation'] ?? $data['korean']
+                ),
+                'public_title_en' => $this->normalizeNullableString($data['public_title_en'] ?? null),
+                'public_summary_en' => $this->normalizeNullableString($data['public_summary_en'] ?? null),
+                'seo_title_en' => $this->normalizeNullableString($data['seo_title_en'] ?? null),
+                'seo_description_en' => $this->normalizeNullableString($data['seo_description_en'] ?? null),
                 'sort_order' => $maxSortOrder + 1,
                 'is_active' => $data['is_active'] ?? true,
                 'is_new' => false,
@@ -87,6 +95,14 @@ class SlangService
                 'usage_frequency' => $data['usage_frequency'],
                 'usage_context' => $data['usage_context'],
                 'english_usage_context' => $data['english_usage_context'],
+                'public_slug' => $this->generateUniquePublicSlug(
+                    $data['public_slug'] ?? $data['pronunciation'] ?? $data['korean'],
+                    $slang->id
+                ),
+                'public_title_en' => $this->normalizeNullableString($data['public_title_en'] ?? null),
+                'public_summary_en' => $this->normalizeNullableString($data['public_summary_en'] ?? null),
+                'seo_title_en' => $this->normalizeNullableString($data['seo_title_en'] ?? null),
+                'seo_description_en' => $this->normalizeNullableString($data['seo_description_en'] ?? null),
                 'is_active' => $data['is_active'] ?? $slang->is_active,
                 'audio_file' => $audioFile,
                 'audio_disk' => $audioDisk,
@@ -351,6 +367,30 @@ class SlangService
         $normalized = trim((string) $value);
 
         return $normalized !== '' ? $normalized : null;
+    }
+
+    private function generateUniquePublicSlug(?string $seed, ?int $ignoreId = null): string
+    {
+        $base = Str::slug(trim((string) $seed));
+
+        if ($base === '') {
+            $base = 'slang';
+        }
+
+        $candidate = $base;
+        $suffix = 2;
+
+        while (
+            Slang::query()
+                ->where('public_slug', $candidate)
+                ->when($ignoreId !== null, fn ($query) => $query->where('id', '!=', $ignoreId))
+                ->exists()
+        ) {
+            $candidate = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     /**

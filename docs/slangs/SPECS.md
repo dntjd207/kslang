@@ -2,7 +2,7 @@
 
 ## 개요
 
-kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·삭제하고 표시 순서를 관리하는 기능. 카테고리 연결(다대다), 사용 예문(1:N), 음성 파일(1:1)을 함께 관리.
+kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·삭제하고 표시 순서를 관리하는 기능. 카테고리 연결(다대다), 사용 예문(1:N), 음성 파일(1:1)을 함께 관리하며, 공개 SEO용 상세 페이지에서 사용할 `public_slug`와 영어 메타 정보도 함께 관리한다.
 
 ## Routes
 
@@ -21,13 +21,18 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | POST | /admin/slangs/{slang}/generate-thread-posts | SlangController@generateThreadPosts | admin.slangs.threadPosts.generate |
 | POST | /admin/slangs/{slang}/generate-audio | SlangController@generateAudio | admin.slangs.generateAudio |
 | POST | /admin/slangs/{slang}/generate-example-audio | SlangController@generateExampleAudio | admin.slangs.generateExampleAudio |
+| POST | /admin/slangs/{slang}/regenerate-section | SlangController@regenerateSection | admin.slangs.regenerateSection |
+| GET | /korean-slang | PublicSlangController@index | slangs.public.index |
+| GET | /korean-slang/{slang:public_slug} | PublicSlangController@show | slangs.public.show |
 
 ## 관련 파일
 
 ### 백엔드
 - `app/Models/Slang.php` — Slang 모델 (fillable, casts, 관계, Accessor)
+- `app/Models/BlogPost.php` — 공개 슬랭 상세와 연결되는 관련 블로그 관계
 - `app/Models/SlangExample.php` — SlangExample 모델
 - `app/Http/Controllers/Admin/SlangController.php` — CRUD + reorder + toggle
+- `app/Http/Controllers/PublicSlangController.php` — 공개 슬랭 허브/상세
 - `app/Services/SlangService.php` — 트랜잭션 기반 생성/수정/삭제 + 슬랭/예문 mp3 생성 서비스
 - `app/Services/SlangThreadContentService.php` — Gemini 기반 Thread 포맷 4종 생성 및 저장 서비스
 - `app/Services/AudioFileService.php` — 업로드/생성 mp3 저장·삭제·교체·URL 반환 서비스
@@ -49,6 +54,8 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `resources/views/admin/slangs/_examples.blade.php` — 사용 예문 섹션 Partial
 - `resources/views/admin/slangs/_example-row.blade.php` — 단일 예문 행 Partial (라벨, 필드별 에러, 반응형)
 - `resources/views/admin/slangs/_form_scripts.blade.php` — 폼 JavaScript (예문 동적 추가/삭제/정렬, 음성 미리듣기, 카드뉴스용 클립보드 복사)
+- `resources/views/public/slangs/index.blade.php` — 공개 슬랭 허브 목록
+- `resources/views/public/slangs/show.blade.php` — 공개 슬랭 상세 페이지
 
 ### 마이그레이션
 - `database/migrations/2026_02_28_000002_create_slangs_table.php`
@@ -59,12 +66,17 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `database/migrations/2026_03_30_181911_add_audio_disk_to_slangs_table.php`
 - `database/migrations/2026_03_30_181912_add_audio_fields_to_slang_examples_table.php`
 - `database/migrations/2026_04_01_093109_add_new_status_fields_to_slangs_table.php`
+- `database/migrations/2026_04_01_203734_add_public_seo_fields_to_slangs_table.php`
 
 ## 핵심 로직
 
 - **SlangService**: DB 트랜잭션으로 슬랭 + 카테고리 sync + 예문 동기화 + 음성 파일 처리를 원자적으로 실행
 - **기본 정보 입력**: 사용 상황은 한글(`usage_context`)과 영어 번역(`english_usage_context`)을 함께 관리
+- **공개 SEO 필드**: `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`을 통해 공개 슬랭 상세 페이지 URL/메타를 관리
+- **SEO 필드 AI 생성**: 수정 화면의 `SEO 필드 AI 생성` 버튼으로 현재 폼 기준 `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`을 생성하며, 결과는 즉시 DB 저장하지 않고 폼에만 반영
 - **AI 참고 설명**: 상세 등록 시 `ai_generation_hint`에 관리자 설명을 저장하고, AI 자동 생성/재생성 시 최신 유행어 의미 해석의 참고 정보로 사용
+- **공개 허브 노출**: `public_slug`가 있고 `apiVisible()` 조건을 만족하는 슬랭만 `/korean-slang` 허브와 공개 상세 페이지에 노출
+- **블로그 연결**: 관련 블로그 글과 다대다로 연결되어 슬랭 상세에서 관련 글을 보여주고, 블로그 글에서 슬랭 상세로 내부 링크 가능
 - **Thread 콘텐츠 생성/저장**: 목록의 `Thread 생성` 버튼으로 단어별 4가지 Threads 포맷(Word Drop, Did You Know, Korean vs English, Quiz/Poll)을 Gemini로 생성하고 `slangs.thread_post_formats` JSON에 저장. 저장된 포맷은 `Thread 보기` 모달에서 다시 열어 본문/정답 리플을 즉시 복사 가능
 - **Thread 콘텐츠 무효화**: 슬랭 본문, 설명, 사용 상황, 예문 등 Thread 생성의 근거 데이터가 수정되면 저장된 Thread 포맷을 자동 초기화하여 오래된 카피가 재사용되지 않도록 함
 - **AI 부분 재생성**: 수정 화면에서 설명, 사용 상황, 예문 섹션별로 AI 재생성 가능. 결과는 즉시 DB 저장하지 않고 폼 값만 교체/추가하여 관리자 검토 후 저장
@@ -103,3 +115,5 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-03-30 | 슬랭 수정 화면 카드뉴스용 복사 버튼 추가 | 현재 폼 값 기준으로 단어/설명/예문 복사 |
 | 2026-03-30 | 목록 화면 Thread 콘텐츠 4포맷 생성/저장 기능 추가 | 행별 버튼, 저장된 포맷 보기/복사 모달, 수정 시 자동 무효화 |
 | 2026-04-01 | 신규 단어 상태 관리 추가 | `is_new`, `approved_at` 컬럼과 승인 후 3일 자동 해제 스케줄 추가 |
+| 2026-04-01 | 공개 SEO 필드 및 공개 슬랭 허브 추가 | `public_slug`/SEO 메타 필드, `/korean-slang` 목록·상세, 블로그 내부 링크 기반 |
+| 2026-04-02 | 공개 SEO 필드 AI 생성 추가 | 수정 화면에서 SEO 메타/slug 생성, 저장 전 폼 반영 방식 유지 |
