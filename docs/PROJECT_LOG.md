@@ -463,3 +463,18 @@
 ### 주요 결정 사항
 - 블로그 카테고리/태그는 별도 taxonomy 모델/관리 기능 대신 `blog_posts` raw 필드로 먼저 구현하여 autosave와 충돌 없이 단순하게 운영하도록 설계
 - 서버 자동 임시저장은 새 글, draft, archived 글에만 허용하고, published 글은 공개 중인 콘텐츠를 타이핑 단계에서 바꾸지 않도록 수동 저장만 허용
+
+---
+
+### 작업 내용
+- F-013 공개 페이지 polish + CTA 추적 강화
+  - 공개 블로그 목록에 featured article 레이아웃, 통계 카드, active filter 배지, CTA 강조 영역 추가
+  - 공개 블로그 상세에 inline CTA, sticky sidebar, article snapshot 카드 추가
+  - `cta_clicks` 테이블과 `/cta-clicks` 엔드포인트를 추가하고, public layout/app.js에서 `data-cta-track` 기반 keepalive 클릭 추적 구현
+  - 공개 슬랭 상세에 quick facts, FAQ, pronunciation audio 영역 추가
+  - 슬랭 상세 JSON-LD를 `DefinedTerm` 단일 구조에서 `DefinedTerm + BreadcrumbList + FAQPage`로 확장
+  - 관련 Pest 테스트 추가/보강: CTA 저장, blog public 렌더링, slang FAQ/schema 노출
+
+### 주요 결정 사항
+- CTA 추적은 별도 analytics 의존성 없이 서버 테이블 적재 방식으로 먼저 구현하여 출처 페이지/위치별 클릭 분석이 가능하도록 설계
+- 구조화 데이터는 화면에 실제로 보이는 FAQ/quick facts와 일치하도록 맞춰, 검색엔진용 schema와 사용자 노출 콘텐츠가 어긋나지 않도록 설계

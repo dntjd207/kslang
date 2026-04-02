@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AppSetting;
 use App\Models\BlogPost;
 use App\Models\Slang;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,6 +36,8 @@ function blogPublicSlang(array $overrides = []): Slang
 }
 
 it('shows published blog posts on the public index and detail pages', function () {
+    AppSetting::setValue('play_store_url', 'https://play.google.com/store/apps/details?id=com.example.kslang');
+
     $slang = blogPublicSlang();
 
     $publishedPost = BlogPost::factory()->published()->create([
@@ -59,6 +62,8 @@ it('shows published blog posts on the public index and detail pages', function (
     $this->get(route('blog.index'))
         ->assertSuccessful()
         ->assertSee('What Does 억까 Mean in Korean?')
+        ->assertSee('Featured guide')
+        ->assertSee('data-cta-source-type="blog_index"', false)
         ->assertDontSee('Draft Only');
 
     $this->get(route('blog.show', ['blogPost' => $publishedPost->slug]))
@@ -67,6 +72,8 @@ it('shows published blog posts on the public index and detail pages', function (
         ->assertSee('A guide to the Korean slang term 억까.')
         ->assertSee('Meaning')
         ->assertSee('internet slang')
+        ->assertSee('Article snapshot')
+        ->assertSee('data-cta-source-type="blog_show"', false)
         ->assertSee('억까')
         ->assertSee(route('slangs.public.show', ['slang' => $slang->public_slug]), false);
 });

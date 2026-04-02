@@ -2,6 +2,11 @@
 
 @section('title', $blogPost->resolved_seo_title . ' | kslang')
 
+@php
+    $schemaContextKey = '@'.'context';
+    $schemaTypeKey = '@'.'type';
+@endphp
+
 @section('head')
     <link rel="canonical" href="{{ $blogPost->canonical_url ?: route('blog.show', ['blogPost' => $blogPost->slug]) }}">
 @endsection
@@ -21,19 +26,19 @@
 
     {!! '<script type="application/ld+json">' !!}
     {!! json_encode([
-        '@context' => 'https://schema.org',
-        '@type' => 'Article',
+        $schemaContextKey => 'https://schema.org',
+        $schemaTypeKey => 'Article',
         'headline' => $blogPost->public_title,
         'description' => $blogPost->resolved_seo_description,
         'datePublished' => $blogPost->published_at?->toIso8601String(),
         'dateModified' => $blogPost->updated_at?->toIso8601String(),
         'mainEntityOfPage' => route('blog.show', ['blogPost' => $blogPost->slug]),
         'author' => [
-            '@type' => 'Organization',
+            $schemaTypeKey => 'Organization',
             'name' => 'kslang',
         ],
         'publisher' => [
-            '@type' => 'Organization',
+            $schemaTypeKey => 'Organization',
             'name' => 'kslang',
         ],
     ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
@@ -41,23 +46,23 @@
 
     {!! '<script type="application/ld+json">' !!}
     {!! json_encode([
-        '@context' => 'https://schema.org',
-        '@type' => 'BreadcrumbList',
+        $schemaContextKey => 'https://schema.org',
+        $schemaTypeKey => 'BreadcrumbList',
         'itemListElement' => [
             [
-                '@type' => 'ListItem',
+                $schemaTypeKey => 'ListItem',
                 'position' => 1,
                 'name' => 'Home',
                 'item' => route('landing'),
             ],
             [
-                '@type' => 'ListItem',
+                $schemaTypeKey => 'ListItem',
                 'position' => 2,
                 'name' => 'Blog',
                 'item' => route('blog.index'),
             ],
             [
-                '@type' => 'ListItem',
+                $schemaTypeKey => 'ListItem',
                 'position' => 3,
                 'name' => $blogPost->public_title,
                 'item' => route('blog.show', ['blogPost' => $blogPost->slug]),
@@ -68,6 +73,10 @@
 @endsection
 
 @section('content')
+    @php
+        $hasMetaChips = $blogPost->category_name || $blogPost->tags_list !== [] || $blogPost->slangs->isNotEmpty();
+    @endphp
+
     <article class="bg-white">
         <header class="border-b border-gray-200 bg-gradient-to-b from-fuchsia-50 via-white to-white">
             <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -98,24 +107,24 @@
                     </p>
                 @endif
 
-                @if ($blogPost->slangs->isNotEmpty())
+                @if ($hasMetaChips)
                     <div class="mt-6 flex flex-wrap gap-2">
-                    @if ($blogPost->category_name)
-                        <a href="{{ route('blog.index', ['category' => $blogPost->category_name]) }}"
-                           class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200">
-                            {{ $blogPost->category_name }}
-                        </a>
-                    @endif
+                        @if ($blogPost->category_name)
+                            <a href="{{ route('blog.index', ['category' => $blogPost->category_name]) }}"
+                               class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200">
+                                {{ $blogPost->category_name }}
+                            </a>
+                        @endif
 
-                    @foreach ($blogPost->tags_list as $tag)
-                        <a href="{{ route('blog.index', ['tag' => $tag]) }}"
-                           class="rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100">
-                            {{ $tag }}
-                        </a>
-                    @endforeach
+                        @foreach ($blogPost->tags_list as $tag)
+                            <a href="{{ route('blog.index', ['tag' => $tag]) }}"
+                               class="rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 transition hover:bg-fuchsia-100">
+                                {{ $tag }}
+                            </a>
+                        @endforeach
 
                         @foreach ($blogPost->slangs as $slang)
-                                <a href="{{ route('slangs.public.show', ['slang' => $slang->public_slug]) }}"
+                            <a href="{{ route('slangs.public.show', ['slang' => $slang->public_slug]) }}"
                                class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:bg-fuchsia-50 hover:text-fuchsia-700">
                                 {{ $slang->korean }}
                             </a>
@@ -127,12 +136,92 @@
 
         <div class="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8">
             <div class="min-w-0">
-                <div class="prose prose-gray max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-fuchsia-600 prose-a:underline prose-li:text-gray-700 prose-strong:text-gray-900 prose-blockquote:border-fuchsia-200 prose-blockquote:text-gray-600 prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-td:border prose-td:border-gray-300">
-                    {!! $blogPost->body_en !!}
+                <div class="mb-8 rounded-[2rem] border border-fuchsia-200 bg-gradient-to-r from-fuchsia-50 via-white to-cyan-50 p-6 shadow-sm">
+                    <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="max-w-2xl">
+                            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-fuchsia-600">Study smarter</p>
+                            <h2 class="mt-2 text-2xl font-bold text-gray-900">Want quick lookup while you read?</h2>
+                            <p class="mt-3 text-sm leading-7 text-gray-600">
+                                Open kslang on mobile to review pronunciation, example-based learning, and related slang without leaving your study flow.
+                            </p>
+                        </div>
+
+                        @if ($playStoreUrl)
+                            <a
+                                href="{{ $playStoreUrl }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                data-cta-track
+                                data-cta-target="google_play"
+                                data-cta-source-type="blog_show"
+                                data-cta-placement="inline_top"
+                                data-cta-blog-post-id="{{ $blogPost->id }}"
+                                class="inline-flex items-center rounded-full bg-fuchsia-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-fuchsia-700"
+                            >
+                                Download on Google Play
+                            </a>
+                        @endif
+                    </div>
                 </div>
+
+                <div class="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+                    <div class="prose prose-gray max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-fuchsia-600 prose-a:underline prose-li:text-gray-700 prose-strong:text-gray-900 prose-blockquote:border-fuchsia-200 prose-blockquote:text-gray-600 prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-td:border prose-td:border-gray-300">
+                    {!! $blogPost->body_en !!}
+                    </div>
+                </div>
+
+                @if ($playStoreUrl)
+                    <div class="mt-8 rounded-[2rem] border border-gray-200 bg-gray-50 p-6 shadow-sm">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm font-semibold uppercase tracking-[0.2em] text-fuchsia-600">Next Step</p>
+                                <h2 class="mt-2 text-2xl font-bold text-gray-900">Keep learning inside the app.</h2>
+                                <p class="mt-2 text-sm leading-7 text-gray-600">
+                                    Save time by checking pronunciation, related slang, and curated examples while reading English guides.
+                                </p>
+                            </div>
+
+                            <a
+                                href="{{ $playStoreUrl }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                data-cta-track
+                                data-cta-target="google_play"
+                                data-cta-source-type="blog_show"
+                                data-cta-placement="inline_bottom"
+                                data-cta-blog-post-id="{{ $blogPost->id }}"
+                                class="inline-flex items-center rounded-full bg-fuchsia-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-fuchsia-700"
+                            >
+                                Download on Google Play
+                            </a>
+                        </div>
+                    </div>
+                @endif
             </div>
 
-            <aside class="space-y-6">
+            <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
+                <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-gray-900">Article snapshot</h2>
+                    <dl class="mt-4 space-y-4 text-sm">
+                        <div class="flex items-start justify-between gap-4">
+                            <dt class="text-gray-500">Published</dt>
+                            <dd class="text-right font-medium text-gray-900">{{ $blogPost->published_at?->format('F j, Y') ?? '-' }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4">
+                            <dt class="text-gray-500">Read time</dt>
+                            <dd class="text-right font-medium text-gray-900">{{ $blogPost->reading_time_minutes }} min</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4">
+                            <dt class="text-gray-500">Category</dt>
+                            <dd class="text-right font-medium text-gray-900">{{ $blogPost->category_name ?: '-' }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4">
+                            <dt class="text-gray-500">Related slang</dt>
+                            <dd class="text-right font-medium text-gray-900">{{ $blogPost->slangs->count() }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
                 <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
                     <p class="text-sm font-semibold uppercase tracking-[0.2em] text-fuchsia-600">Explore More</p>
                     <h2 class="mt-3 text-xl font-bold text-gray-900">Related slang pages</h2>
@@ -157,7 +246,17 @@
                         Check pronunciation, examples, and related slang in one place while you study.
                     </p>
                     @if ($playStoreUrl)
-                        <a href="{{ $playStoreUrl }}" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex items-center rounded-full bg-fuchsia-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-fuchsia-700">
+                        <a
+                            href="{{ $playStoreUrl }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-cta-track
+                            data-cta-target="google_play"
+                            data-cta-source-type="blog_show"
+                            data-cta-placement="sidebar"
+                            data-cta-blog-post-id="{{ $blogPost->id }}"
+                            class="mt-5 inline-flex items-center rounded-full bg-fuchsia-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-fuchsia-700"
+                        >
                             Download on Google Play
                         </a>
                     @endif

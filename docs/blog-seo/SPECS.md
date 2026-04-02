@@ -12,6 +12,7 @@
 | GET | /blog/{blogPost:slug} | BlogController@show | blog.show |
 | GET | /korean-slang | PublicSlangController@index | slangs.public.index |
 | GET | /korean-slang/{slang:public_slug} | PublicSlangController@show | slangs.public.show |
+| POST | /cta-clicks | CtaClickController@store | cta-clicks.store |
 | GET | /admin/blog-posts | Admin\BlogPostController@index | admin.blog-posts.index |
 | GET | /admin/blog-posts/create | Admin\BlogPostController@create | admin.blog-posts.create |
 | POST | /admin/blog-posts | Admin\BlogPostController@store | admin.blog-posts.store |
@@ -26,9 +27,11 @@
 
 ### 백엔드
 - `app/Models/BlogPost.php` — 블로그 모델 (상태, 번역 상태, slug, 카테고리/태그 raw 필드, 공개 accessor, related slangs 관계)
+- `app/Models/CtaClick.php` — 공개 CTA 클릭 이벤트 저장 모델
 - `app/Models/Slang.php` — 공개 SEO용 `public_slug`, `public_title_en`, `public_summary_en`, SEO 메타 필드 추가
 - `app/Http/Controllers/Admin/BlogPostController.php` — 관리자 블로그 CRUD + AI 초안/번역 JSON 응답
 - `app/Http/Controllers/BlogController.php` — 공개 블로그 목록/상세
+- `app/Http/Controllers/CtaClickController.php` — 공개 CTA 클릭 수집
 - `app/Http/Controllers/PublicSlangController.php` — 공개 슬랭 목록/상세
 - `app/Http/Controllers/SitemapController.php` — blog/slang 공개 URL sitemap 포함
 - `app/Http/Requests/Admin/StoreBlogPostRequest.php`
@@ -36,6 +39,7 @@
 - `app/Http/Requests/Admin/AutoSaveBlogPostRequest.php`
 - `app/Http/Requests/Admin/GenerateBlogPostDraftRequest.php`
 - `app/Http/Requests/Admin/TranslateBlogPostRequest.php`
+- `app/Http/Requests/TrackCtaClickRequest.php`
 - `app/Services/BlogPostService.php` — 임시 저장/발행/자동 임시저장/slug 생성/카테고리·태그 정규화/번역 상태 판별/related slangs sync
 - `app/Services/BlogPostAiService.php` — 한국어/영어 초안 생성 + 한국어 기준 영어 재번역
 - `app/Services/GeminiService.php` — 모델 override 지원 (`translation_model`)
@@ -48,23 +52,27 @@
 - `resources/views/admin/blog-posts/_form.blade.php` — 전략/카테고리/태그/한국어 원본/영어 공개본/SEO/관련 슬랭/상태 UI + autosave 상태 카드
 - `resources/views/admin/blog-posts/_scripts.blade.php` — TinyMCE 2개 에디터 + AI draft/translate AJAX + SEO preview + tag chip preview + 자동 임시저장
 - `resources/views/public/blog/index.blade.php` — 공개 블로그 목록 + category/tag 필터
-- `resources/views/public/blog/show.blade.php` — 공개 블로그 상세 + category/tag badge
+- `resources/views/public/blog/show.blade.php` — 공개 블로그 상세 + category/tag badge + inline/sidebar CTA
 - `resources/views/public/slangs/index.blade.php`
-- `resources/views/public/slangs/show.blade.php`
+- `resources/views/public/slangs/show.blade.php` — quick facts, FAQ, 강화된 schema, CTA
 - `resources/views/components/admin/sidebar.blade.php` — Blog SEO 메뉴 추가
 - `resources/views/components/public/navbar.blade.php` — Blog / Korean Slang 공개 메뉴 추가
 - `resources/views/components/public/footer.blade.php` — Blog / Korean Slang / Privacy / Terms 링크 추가
 - `resources/views/partials/landing/preview.blade.php` — 랜딩 미리보기 카드에서 공개 슬랭 상세로 링크
+- `resources/views/layouts/public.blade.php` — CTA tracking endpoint 주입
+- `resources/js/app.js` — `data-cta-track` 기반 keepalive CTA 클릭 추적
 
 ### 마이그레이션
 - `database/migrations/2026_04_01_203730_create_blog_posts_table.php`
 - `database/migrations/2026_04_01_203734_create_blog_post_slang_table.php`
 - `database/migrations/2026_04_01_203734_add_public_seo_fields_to_slangs_table.php`
+- `database/migrations/2026_04_02_100530_create_cta_clicks_table.php`
 
 ### 테스트
 - `tests/Feature/Admin/BlogPostManagementTest.php`
 - `tests/Feature/Admin/BlogPostAiActionsTest.php`
 - `tests/Feature/BlogPublicPagesTest.php`
+- `tests/Feature/CtaClickTrackingTest.php`
 - `tests/Feature/PublicSlangPageTest.php`
 
 ## 핵심 로직
@@ -80,8 +88,9 @@
 - 블로그 본문과 영어 공개본은 TinyMCE 기반 HTML 에디터로 작성하며 `clean()`으로 저장 전 정화
 - AI 초안 생성은 현재 폼 값을 기준으로 한국어/영어 초안과 SEO 메타를 함께 반환
 - 영어 재번역은 한국어 원본을 기준으로 `gemini-3.1-flash-lite-preview` 모델로 생성하며, category/tag 입력도 프롬프트 맥락으로 함께 사용
+- 공개 blog/slang 페이지의 Google Play CTA는 `data-cta-track` 속성으로 추적되며 `cta_clicks` 테이블에 출처 페이지/위치/source id를 저장
 - 공개 슬랭 상세는 기존 `slangs` 데이터를 재사용하며 `public_slug` 기반 URL을 사용
-- 공개 blog/slang 페이지는 canonical, OG, Twitter 메타와 JSON-LD를 포함
+- 공개 blog/slang 페이지는 canonical, OG, Twitter 메타와 JSON-LD를 포함하고, 슬랭 상세는 `DefinedTerm + BreadcrumbList + FAQPage` 구조화 데이터를 노출
 - `sitemap.xml`에 blog 목록/상세와 공개 slang 목록/상세를 모두 포함
 
 ## API 엔드포인트
@@ -94,3 +103,4 @@
 |------|----------|------|
 | 2026-04-01 | F-013 SEO 블로그 & 공개 슬랭 허브 구현 | 관리자 블로그 CRUD, 임시 저장, AI 초안/번역, 공개 blog/slang 페이지, sitemap 연동 |
 | 2026-04-02 | 카테고리/태그 + 자동 임시저장 + 관리자 UI polish 확장 | taxonomy raw 필드, autosave endpoint, public filter/badge |
+| 2026-04-02 | 공개 디자인 polish + CTA 클릭 추적 + schema 강화 | featured blog, CTA tracking, slang FAQ/DefinedTerm/BreadcrumbList/FAQPage |

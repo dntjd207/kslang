@@ -2,6 +2,11 @@
 
 @section('title', 'kslang | Korean Slang, Trending Buzzwords & Street Talk — Curated in Korea')
 
+@php
+    $schemaContextKey = '@'.'context';
+    $schemaTypeKey = '@'.'type';
+@endphp
+
 @section('head')
     <link rel="canonical" href="{{ url('/') }}">
 @endsection
@@ -30,14 +35,14 @@
 
     {!! '<script type="application/ld+json">' !!}
     {!! json_encode([
-        '@context' => 'https://schema.org',
-        '@type' => 'WebPage',
+        $schemaContextKey => 'https://schema.org',
+        $schemaTypeKey => 'WebPage',
         'name' => 'kslang — Korean Slang, Trending Buzzwords & Street Talk',
         'description' => 'Korean slang, trending buzzwords, and street talk — hand-reviewed by a Korean admin in Korea. Native audio and real-life examples.',
         'url' => url('/'),
         'inLanguage' => 'en',
         'publisher' => [
-            '@type' => 'Organization',
+            $schemaTypeKey => 'Organization',
             'name' => 'kslang',
         ],
     ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
@@ -45,14 +50,14 @@
 
     {!! '<script type="application/ld+json">' !!}
     {!! json_encode(array_filter([
-        '@context' => 'https://schema.org',
-        '@type' => 'SoftwareApplication',
+        $schemaContextKey => 'https://schema.org',
+        $schemaTypeKey => 'SoftwareApplication',
         'name' => 'kslang',
         'operatingSystem' => 'Android',
         'applicationCategory' => 'EducationalApplication',
         'description' => 'Korean slang, trending buzzwords, and street talk — curated and verified by a Korean admin in Korea. Native audio, real-life examples, and a 4-level intensity system.',
         'offers' => [
-            '@type' => 'Offer',
+            $schemaTypeKey => 'Offer',
             'price' => '0',
             'priceCurrency' => 'USD',
         ],

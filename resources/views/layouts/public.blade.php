@@ -11,7 +11,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="min-h-screen flex flex-col @yield('body_class', 'bg-white text-gray-900')">
+<body
+    data-cta-endpoint="{{ route('cta-clicks.store') }}"
+    class="min-h-screen flex flex-col @yield('body_class', 'bg-white text-gray-900')"
+>
     <x-public.navbar />
 
     <main class="flex-1">

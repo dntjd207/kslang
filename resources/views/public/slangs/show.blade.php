@@ -2,9 +2,71 @@
 
 @section('title', $slang->resolved_seo_title . ' | kslang')
 
+@php
+    $schemaContextKey = '@'.'context';
+    $schemaTypeKey = '@'.'type';
+@endphp
+
 @section('head')
     <link rel="canonical" href="{{ route('slangs.public.show', ['slang' => $slang->public_slug]) }}">
 @endsection
+
+@php
+    $faqItems = [
+        [
+            'question' => "What does {$slang->korean} mean in Korean?",
+            'answer' => $slang->english_description,
+        ],
+        [
+            'question' => "How strong is {$slang->korean}?",
+            'answer' => "It is generally considered {$slang->level_label} slang, and this entry is marked as {$slang->usage_frequency} in usage frequency.",
+        ],
+        [
+            'question' => "When do people use {$slang->korean}?",
+            'answer' => $slang->english_usage_context,
+        ],
+    ];
+
+    $definedTermSchema = [
+        $schemaContextKey => 'https://schema.org',
+        $schemaTypeKey => 'DefinedTerm',
+        'name' => $slang->korean,
+        'alternateName' => array_values(array_filter([
+            $slang->pronunciation,
+            $slang->public_title_en,
+        ])),
+        'termCode' => $slang->public_slug,
+        'description' => $slang->public_summary,
+        'inDefinedTermSet' => route('slangs.public.index'),
+        'url' => route('slangs.public.show', ['slang' => $slang->public_slug]),
+        'additionalProperty' => array_values(array_filter([
+            [
+                $schemaTypeKey => 'PropertyValue',
+                'name' => 'Intensity level',
+                'value' => $slang->level_label,
+            ],
+            [
+                $schemaTypeKey => 'PropertyValue',
+                'name' => 'Usage frequency',
+                'value' => $slang->usage_frequency,
+            ],
+            $slang->categories->isNotEmpty() ? [
+                $schemaTypeKey => 'PropertyValue',
+                'name' => 'Categories',
+                'value' => $slang->categories->pluck('name')->implode(', '),
+            ] : null,
+        ])),
+    ];
+
+    if ($slang->audio_url) {
+        $definedTermSchema['associatedMedia'] = [[
+            $schemaTypeKey => 'AudioObject',
+            'name' => "{$slang->korean} pronunciation audio",
+            'contentUrl' => $slang->audio_url,
+            'encodingFormat' => 'audio/mpeg',
+        ]];
+    }
+@endphp
 
 @section('meta')
     <meta name="description" content="{{ $slang->resolved_seo_description }}">
@@ -20,14 +82,50 @@
     <meta name="twitter:image" content="{{ asset('images/og-cover.png') }}">
 
     {!! '<script type="application/ld+json">' !!}
+    {!! json_encode($definedTermSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    {!! '</script>' !!}
+
+    {!! '<script type="application/ld+json">' !!}
     {!! json_encode([
-        '@context' => 'https://schema.org',
-        '@type' => 'DefinedTerm',
-        'name' => $slang->korean,
-        'termCode' => $slang->public_slug,
-        'description' => $slang->public_summary,
-        'inDefinedTermSet' => route('slangs.public.index'),
-        'url' => route('slangs.public.show', ['slang' => $slang->public_slug]),
+        $schemaContextKey => 'https://schema.org',
+        $schemaTypeKey => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                $schemaTypeKey => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('landing'),
+            ],
+            [
+                $schemaTypeKey => 'ListItem',
+                'position' => 2,
+                'name' => 'Korean Slang',
+                'item' => route('slangs.public.index'),
+            ],
+            [
+                $schemaTypeKey => 'ListItem',
+                'position' => 3,
+                'name' => $slang->korean,
+                'item' => route('slangs.public.show', ['slang' => $slang->public_slug]),
+            ],
+        ],
+    ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    {!! '</script>' !!}
+
+    {!! '<script type="application/ld+json">' !!}
+    {!! json_encode([
+        $schemaContextKey => 'https://schema.org',
+        $schemaTypeKey => 'FAQPage',
+        'mainEntity' => collect($faqItems)->map(function (array $item) use ($schemaTypeKey): array {
+            return [
+                $schemaTypeKey => 'Question',
+                'name' => $item['question'],
+                'acceptedAnswer' => [
+                    $schemaTypeKey => 'Answer',
+                    'text' => $item['answer'],
+                ],
+            ];
+        })->all(),
     ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
     {!! '</script>' !!}
 @endsection
@@ -66,15 +164,26 @@
                         {{ $slang->public_summary }}
                     </p>
 
-                    @if ($slang->categories->isNotEmpty())
-                        <div class="mt-6 flex flex-wrap gap-2">
-                            @foreach ($slang->categories as $category)
-                                <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                                    {{ $category->name }}
-                                </span>
-                            @endforeach
+                    <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div class="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Pronunciation</p>
+                            <p class="mt-2 text-sm font-semibold text-gray-900">{{ $slang->pronunciation ?: '-' }}</p>
                         </div>
-                    @endif
+                        <div class="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Intensity</p>
+                            <p class="mt-2 text-sm font-semibold text-gray-900">{{ $slang->level_label }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Frequency</p>
+                            <p class="mt-2 text-sm font-semibold text-gray-900">{{ $slang->usage_frequency }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Categories</p>
+                            <p class="mt-2 text-sm font-semibold text-gray-900">
+                                {{ $slang->categories->isNotEmpty() ? $slang->categories->pluck('name')->implode(', ') : '-' }}
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="rounded-3xl border border-cyan-200 bg-cyan-50 p-6 shadow-sm">
@@ -85,7 +194,17 @@
                     </p>
 
                     @if ($playStoreUrl)
-                        <a href="{{ $playStoreUrl }}" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex items-center rounded-full bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700">
+                        <a
+                            href="{{ $playStoreUrl }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-cta-track
+                            data-cta-target="google_play"
+                            data-cta-source-type="slang_show"
+                            data-cta-placement="hero"
+                            data-cta-slang-id="{{ $slang->id }}"
+                            class="mt-5 inline-flex items-center rounded-full bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                        >
                             Download on Google Play
                         </a>
                     @endif
@@ -100,6 +219,13 @@
                 <div class="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
                     <h2 class="text-2xl font-bold text-gray-900">Meaning</h2>
                     <p class="mt-4 text-base leading-8 text-gray-700">{{ $slang->english_description }}</p>
+
+                    @if ($slang->audio_url)
+                        <div class="mt-6 rounded-2xl border border-cyan-200 bg-cyan-50/60 p-5">
+                            <p class="text-sm font-semibold text-cyan-900">Listen to pronunciation</p>
+                            <audio class="mt-3 w-full" controls preload="none" src="{{ $slang->audio_url }}"></audio>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -127,9 +253,43 @@
                         </div>
                     @endif
                 </div>
+
+                <div class="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+                    <h2 class="text-2xl font-bold text-gray-900">FAQ</h2>
+                    <div class="mt-6 space-y-4">
+                        @foreach ($faqItems as $faqItem)
+                            <div class="rounded-2xl border border-gray-200 p-5">
+                                <h3 class="text-lg font-semibold text-gray-900">{{ $faqItem['question'] }}</h3>
+                                <p class="mt-2 text-sm leading-7 text-gray-600">{{ $faqItem['answer'] }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
             </div>
 
-            <aside class="space-y-6">
+            <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
+                <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <h2 class="text-xl font-bold text-gray-900">Quick facts</h2>
+                    <dl class="mt-4 space-y-4 text-sm">
+                        <div class="flex items-start justify-between gap-4">
+                            <dt class="text-gray-500">Korean</dt>
+                            <dd class="text-right font-medium text-gray-900">{{ $slang->korean }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4">
+                            <dt class="text-gray-500">Pronunciation</dt>
+                            <dd class="text-right font-medium text-gray-900">{{ $slang->pronunciation ?: '-' }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4">
+                            <dt class="text-gray-500">Intensity</dt>
+                            <dd class="text-right font-medium text-gray-900">{{ $slang->level_label }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4">
+                            <dt class="text-gray-500">Frequency</dt>
+                            <dd class="text-right font-medium text-gray-900">{{ $slang->usage_frequency }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
                 <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
                     <h2 class="text-xl font-bold text-gray-900">Related blog articles</h2>
 
@@ -163,6 +323,30 @@
                                 </a>
                             @endforeach
                         </div>
+                    @endif
+                </div>
+
+                <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <p class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-700">App</p>
+                    <h2 class="mt-3 text-2xl font-bold text-gray-900">Study this slang inside kslang.</h2>
+                    <p class="mt-3 text-sm leading-6 text-gray-600">
+                        Listen to pronunciation, review examples, and keep related slang together while learning.
+                    </p>
+
+                    @if ($playStoreUrl)
+                        <a
+                            href="{{ $playStoreUrl }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-cta-track
+                            data-cta-target="google_play"
+                            data-cta-source-type="slang_show"
+                            data-cta-placement="sidebar"
+                            data-cta-slang-id="{{ $slang->id }}"
+                            class="mt-5 inline-flex items-center rounded-full bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                        >
+                            Download on Google Play
+                        </a>
                     @endif
                 </div>
             </aside>

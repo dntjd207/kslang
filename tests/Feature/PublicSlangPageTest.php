@@ -73,6 +73,9 @@ it('shows the public slang detail page with examples and related blog posts', fu
         ->assertSuccessful()
         ->assertSee('What does 억까 mean in Korean?')
         ->assertSee('A slang term for unfair criticism.')
+        ->assertSee('Quick facts')
+        ->assertSee('FAQ')
+        ->assertSee('"@type": "FAQPage"', false)
         ->assertSee('그건 좀 억까 아니냐?')
         ->assertSee('What Does 억까 Mean in Korean?');
 });

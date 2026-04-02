@@ -109,7 +109,16 @@
             </div>
 
             @if ($playStoreUrl)
-                <a href="{{ $playStoreUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700">
+                <a
+                    href="{{ $playStoreUrl }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-cta-track
+                    data-cta-target="google_play"
+                    data-cta-source-type="slang_index"
+                    data-cta-placement="footer"
+                    class="inline-flex items-center rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                >
                     Download on Google Play
                 </a>
             @endif

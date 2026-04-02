@@ -74,6 +74,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - **기본 정보 입력**: 사용 상황은 한글(`usage_context`)과 영어 번역(`english_usage_context`)을 함께 관리
 - **공개 SEO 필드**: `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`을 통해 공개 슬랭 상세 페이지 URL/메타를 관리
 - **SEO 필드 AI 생성**: 수정 화면의 `SEO 필드 AI 생성` 버튼으로 현재 폼 기준 `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`을 생성하며, 결과는 즉시 DB 저장하지 않고 폼에만 반영
+- **구조화 데이터 강화**: 공개 슬랭 상세는 `DefinedTerm`, `BreadcrumbList`, `FAQPage` JSON-LD를 출력하고, 화면에도 Quick facts/FAQ를 함께 노출해 schema와 실제 콘텐츠가 일치하도록 구성
 - **AI 참고 설명**: 상세 등록 시 `ai_generation_hint`에 관리자 설명을 저장하고, AI 자동 생성/재생성 시 최신 유행어 의미 해석의 참고 정보로 사용
 - **공개 허브 노출**: `public_slug`가 있고 `apiVisible()` 조건을 만족하는 슬랭만 `/korean-slang` 허브와 공개 상세 페이지에 노출
 - **블로그 연결**: 관련 블로그 글과 다대다로 연결되어 슬랭 상세에서 관련 글을 보여주고, 블로그 글에서 슬랭 상세로 내부 링크 가능
@@ -117,3 +118,4 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-04-01 | 신규 단어 상태 관리 추가 | `is_new`, `approved_at` 컬럼과 승인 후 3일 자동 해제 스케줄 추가 |
 | 2026-04-01 | 공개 SEO 필드 및 공개 슬랭 허브 추가 | `public_slug`/SEO 메타 필드, `/korean-slang` 목록·상세, 블로그 내부 링크 기반 |
 | 2026-04-02 | 공개 SEO 필드 AI 생성 추가 | 수정 화면에서 SEO 메타/slug 생성, 저장 전 폼 반영 방식 유지 |
+| 2026-04-02 | 공개 슬랭 상세 디자인/FAQ/schema 강화 | quick facts, FAQ 표시, CTA polish, JSON-LD 보강 |

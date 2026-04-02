@@ -2,6 +2,11 @@
 
 @section('title', 'Korean Slang Blog | kslang')
 
+@php
+    $schemaContextKey = '@'.'context';
+    $schemaTypeKey = '@'.'type';
+@endphp
+
 @section('head')
     <link rel="canonical" href="{{ route('blog.index') }}">
 @endsection
@@ -21,8 +26,8 @@
 
     {!! '<script type="application/ld+json">' !!}
     {!! json_encode([
-        '@context' => 'https://schema.org',
-        '@type' => 'CollectionPage',
+        $schemaContextKey => 'https://schema.org',
+        $schemaTypeKey => 'CollectionPage',
         'name' => 'Korean Slang Blog',
         'description' => 'English blog articles about Korean slang and cultural usage context.',
         'url' => route('blog.index'),
@@ -31,6 +36,14 @@
 @endsection
 
 @section('content')
+    @php
+        $featuredPost = $blogPosts->currentPage() === 1 ? $blogPosts->getCollection()->first() : null;
+        $remainingPosts = $featuredPost
+            ? $blogPosts->getCollection()->slice(1)->values()
+            : $blogPosts->getCollection();
+        $hasActiveFilters = $activeCategory !== null || $activeTag !== null;
+    @endphp
+
     <section class="border-b border-gray-200 bg-gradient-to-b from-fuchsia-50 via-white to-white">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
             <p class="text-sm font-semibold uppercase tracking-[0.24em] text-fuchsia-600">Blog</p>
@@ -40,10 +53,40 @@
             <p class="mt-4 max-w-3xl text-lg leading-8 text-gray-600">
                 Explore structured articles built for English readers who want to understand what Korean slang really means, when people use it, and when not to use it.
             </p>
+
+            <div class="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur">
+                    <p class="text-sm font-medium text-gray-500">Published guides</p>
+                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $blogPosts->total() }}</p>
+                </div>
+                <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur">
+                    <p class="text-sm font-medium text-gray-500">Categories</p>
+                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $availableCategories->count() }}</p>
+                </div>
+                <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur">
+                    <p class="text-sm font-medium text-gray-500">Tags</p>
+                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $availableTags->count() }}</p>
+                </div>
+            </div>
         </div>
     </section>
 
     <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+        @if ($hasActiveFilters)
+            <div class="mb-8 flex flex-wrap items-center gap-2 rounded-3xl border border-fuchsia-200 bg-fuchsia-50/70 px-5 py-4 text-sm text-fuchsia-900">
+                <span class="font-semibold">Active filters:</span>
+                @if ($activeCategory)
+                    <span class="rounded-full bg-white px-3 py-1 font-semibold text-fuchsia-700">Category: {{ $activeCategory }}</span>
+                @endif
+                @if ($activeTag)
+                    <span class="rounded-full bg-white px-3 py-1 font-semibold text-fuchsia-700">Tag: {{ $activeTag }}</span>
+                @endif
+                <a href="{{ route('blog.index') }}" class="ml-auto text-sm font-semibold text-fuchsia-700 transition hover:text-fuchsia-900">
+                    Clear filters
+                </a>
+            </div>
+        @endif
+
         @if ($availableCategories->isNotEmpty() || $availableTags->isNotEmpty())
             <div class="mb-10 space-y-5">
                 @if ($availableCategories->isNotEmpty())
@@ -90,8 +133,89 @@
                 <p class="mt-3 text-gray-600">Blog posts will appear here once they are published.</p>
             </div>
         @else
+            @if ($featuredPost)
+                <article class="mb-8 overflow-hidden rounded-[2rem] border border-gray-200 bg-gradient-to-br from-gray-950 via-fuchsia-950 to-slate-950 shadow-xl">
+                    <div class="grid grid-cols-1 gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)] lg:px-8">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-3 text-sm text-white/70">
+                                <span>{{ $featuredPost->published_at?->format('M j, Y') }}</span>
+                                <span>&middot;</span>
+                                <span>{{ $featuredPost->reading_time_minutes }} min read</span>
+                                @if ($featuredPost->category_name)
+                                    <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">
+                                        {{ $featuredPost->category_name }}
+                                    </span>
+                                @endif
+                            </div>
+
+                            <p class="mt-5 text-sm font-semibold uppercase tracking-[0.24em] text-fuchsia-300">Featured guide</p>
+                            <h2 class="mt-3 max-w-3xl text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                                <a href="{{ route('blog.show', ['blogPost' => $featuredPost->slug]) }}" class="transition hover:text-fuchsia-200">
+                                    {{ $featuredPost->public_title }}
+                                </a>
+                            </h2>
+
+                            @if ($featuredPost->public_excerpt)
+                                <p class="mt-5 max-w-3xl text-base leading-8 text-white/75">
+                                    {{ $featuredPost->public_excerpt }}
+                                </p>
+                            @endif
+
+                            <div class="mt-6 flex flex-wrap gap-2">
+                                @foreach ($featuredPost->tags_list as $tag)
+                                    <a href="{{ route('blog.index', array_filter(['category' => $activeCategory, 'tag' => $tag])) }}"
+                                       class="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/20">
+                                        {{ $tag }}
+                                    </a>
+                                @endforeach
+                            </div>
+
+                            <div class="mt-8 flex flex-wrap gap-3">
+                                <a href="{{ route('blog.show', ['blogPost' => $featuredPost->slug]) }}"
+                                   class="inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-gray-900 transition hover:bg-fuchsia-50">
+                                    Read featured article
+                                </a>
+
+                                @if ($playStoreUrl)
+                                    <a
+                                        href="{{ $playStoreUrl }}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        data-cta-track
+                                        data-cta-target="google_play"
+                                        data-cta-source-type="blog_index"
+                                        data-cta-placement="featured"
+                                        data-cta-blog-post-id="{{ $featuredPost->id }}"
+                                        class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+                                    >
+                                        Download app
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="rounded-[1.75rem] border border-white/10 bg-white/5 p-6 backdrop-blur">
+                            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-fuchsia-300">Related slang</p>
+                            @if ($featuredPost->slangs->isEmpty())
+                                <p class="mt-4 text-sm leading-7 text-white/70">This article is not linked to public slang pages yet.</p>
+                            @else
+                                <div class="mt-4 space-y-3">
+                                    @foreach ($featuredPost->slangs as $slang)
+                                        <a href="{{ route('slangs.public.show', ['slang' => $slang->public_slug]) }}"
+                                           class="block rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition hover:bg-white/10">
+                                            <p class="font-semibold text-white">{{ $slang->korean }}</p>
+                                            <p class="mt-1 text-sm text-white/65">{{ $slang->public_summary }}</p>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </article>
+            @endif
+
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                @foreach ($blogPosts as $blogPost)
+                @foreach ($remainingPosts as $blogPost)
                     <article class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                         <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500">
                             <span>{{ $blogPost->published_at?->format('M j, Y') }}</span>
@@ -169,7 +293,16 @@
             </div>
 
             @if ($playStoreUrl)
-                <a href="{{ $playStoreUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full bg-fuchsia-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-fuchsia-700">
+                <a
+                    href="{{ $playStoreUrl }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-cta-track
+                    data-cta-target="google_play"
+                    data-cta-source-type="blog_index"
+                    data-cta-placement="footer"
+                    class="inline-flex items-center rounded-full bg-fuchsia-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-fuchsia-700"
+                >
                     Download on Google Play
                 </a>
             @endif
