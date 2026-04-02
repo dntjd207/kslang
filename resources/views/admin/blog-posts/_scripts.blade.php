@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
         menubar: 'edit insert view format table tools help',
         plugins: [
             'advlist', 'autolink', 'lists', 'link', 'table',
-            'code', 'fullscreen', 'wordcount', 'autoresize',
+            'code', 'fullscreen', 'wordcount',
             'searchreplace', 'preview', 'visualblocks',
         ],
         toolbar: [
@@ -86,8 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
             th { background: #f8fafc; font-weight: 700; }
             a { color: #4f46e5; text-decoration: underline; }
         `,
-        autoresize_min_height: 400,
-        autoresize_max_height: 1200,
+        min_height: 560,
         link_default_target: '_blank',
         setup: function (editor) {
             editor.on('change input undo redo', function () {

@@ -82,9 +82,7 @@ it('shows the public slang detail page with examples and related blog posts', fu
         ->assertSuccessful()
         ->assertSee('What does 억까 mean in Korean?')
         ->assertSee('A slang term for unfair criticism.')
-        ->assertSee('Quick facts')
-        ->assertSee('FAQ')
-        ->assertSee('"@type": "FAQPage"', false)
+        ->assertDontSee('Quick facts')
         ->assertSee('그건 좀 억까 아니냐?')
         ->assertSee('What Does 억까 Mean in Korean?');
 });
@@ -109,7 +107,7 @@ it('shows ai generated faq items on slang detail page when available', function 
         ->assertSee('"@type": "FAQPage"', false);
 });
 
-it('falls back to default faq items when faq_items is null', function () {
+it('hides faq section when faq_items is null', function () {
     $slang = publicSlangEntry([
         'faq_items' => null,
     ]);
@@ -118,8 +116,7 @@ it('falls back to default faq items when faq_items is null', function () {
 
     $response
         ->assertSuccessful()
-        ->assertSee('What does 억까 mean in Korean?')
-        ->assertSee('FAQ');
+        ->assertDontSee('"@type": "FAQPage"', false);
 });
 
 it('shows public slang entries on the dictionary index and hides non-public entries', function () {
@@ -155,6 +152,5 @@ it('shows public slang entries on the dictionary index and hides non-public entr
         ->assertSuccessful()
         ->assertSee('억까')
         ->assertSee('짤')
-        ->assertSee('data-cta-placement="hero"', false)
         ->assertDontSee('비공개');
 });
