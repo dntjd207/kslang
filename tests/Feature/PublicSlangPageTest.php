@@ -52,7 +52,7 @@ it('shows official landing download ctas when no custom play store setting exist
         ->assertSee('data-cta-source-type="landing"', false);
 });
 
-it('shows the public slang detail page with examples and related blog posts', function () {
+it('shows the public slang detail page with first example only and app cta for rest', function () {
     $category = publicSlangCategory();
     $slang = publicSlangEntry();
     $slang->categories()->sync([$category->id]);
@@ -82,9 +82,40 @@ it('shows the public slang detail page with examples and related blog posts', fu
         ->assertSuccessful()
         ->assertSee('What does 억까 mean in Korean?')
         ->assertSee('A slang term for unfair criticism.')
-        ->assertDontSee('Quick facts')
         ->assertSee('그건 좀 억까 아니냐?')
+        ->assertDontSee('댓글이 너무 억까다.')
+        ->assertSee('1 more example with audio available in the app')
+        ->assertSee('See all examples in App')
         ->assertSee('What Does 억까 Mean in Korean?');
+});
+
+it('does not render audio players on public slang detail page', function () {
+    $slang = publicSlangEntry();
+    $slang->examples()->create([
+        'korean_example' => '그건 좀 억까 아니냐?',
+        'english_example' => 'Isn\'t that unfair criticism?',
+        'sort_order' => 0,
+    ]);
+
+    $response = $this->get(route('slangs.public.show', ['slang' => $slang->public_slug]));
+
+    $response
+        ->assertSuccessful()
+        ->assertSee('Listen in App')
+        ->assertDontSee('<audio', false);
+});
+
+it('does not render actual usage context on public slang detail page', function () {
+    $slang = publicSlangEntry();
+
+    $response = $this->get(route('slangs.public.show', ['slang' => $slang->public_slug]));
+
+    $response
+        ->assertSuccessful()
+        ->assertSee('Nuance and usage context')
+        ->assertDontSee('It is often used online when someone feels unfairly judged.')
+        ->assertDontSee('온라인에서 억울함을 표현할 때 자주 쓴다.')
+        ->assertSee('Read full context in App');
 });
 
 it('shows ai generated faq items on slang detail page when available', function () {
