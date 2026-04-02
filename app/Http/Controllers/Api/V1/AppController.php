@@ -18,7 +18,7 @@ class AppController extends Controller
         return response()->json([
             'min_version' => $settings->get('min_version'),
             'latest_version' => $settings->get('latest_version'),
-            'play_store_url' => $settings->get('play_store_url'),
+            'play_store_url' => AppSetting::resolvePlayStoreUrl($settings->get('play_store_url')),
         ]);
     }
 

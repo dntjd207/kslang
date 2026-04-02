@@ -17,7 +17,7 @@ class LandingController extends Controller
             ->limit(8)
             ->get();
 
-        $playStoreUrl = AppSetting::getValue('play_store_url', '');
+        $playStoreUrl = AppSetting::getPlayStoreUrl();
 
         return view('public.landing', [
             'previewSlangs' => $previewSlangs,

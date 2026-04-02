@@ -43,6 +43,7 @@ class Slang extends Model
         'public_summary_en',
         'seo_title_en',
         'seo_description_en',
+        'faq_items',
     ];
 
     protected function casts(): array
@@ -55,6 +56,7 @@ class Slang extends Model
             'approved_at' => 'datetime',
             'thread_post_formats' => 'array',
             'thread_post_generated_at' => 'datetime',
+            'faq_items' => 'array',
         ];
     }
 

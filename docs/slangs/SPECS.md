@@ -54,7 +54,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `resources/views/admin/slangs/_examples.blade.php` — 사용 예문 섹션 Partial
 - `resources/views/admin/slangs/_example-row.blade.php` — 단일 예문 행 Partial (라벨, 필드별 에러, 반응형)
 - `resources/views/admin/slangs/_form_scripts.blade.php` — 폼 JavaScript (예문 동적 추가/삭제/정렬, 음성 미리듣기, 카드뉴스용 클립보드 복사)
-- `resources/views/public/slangs/index.blade.php` — 공개 슬랭 허브 목록
+- `resources/views/public/slangs/index.blade.php` — 공개 슬랭 허브 목록 + 검색 hero/하단 앱 CTA
 - `resources/views/public/slangs/show.blade.php` — 공개 슬랭 상세 페이지
 
 ### 마이그레이션
@@ -67,6 +67,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `database/migrations/2026_03_30_181912_add_audio_fields_to_slang_examples_table.php`
 - `database/migrations/2026_04_01_093109_add_new_status_fields_to_slangs_table.php`
 - `database/migrations/2026_04_01_203734_add_public_seo_fields_to_slangs_table.php`
+- `database/migrations/2026_04_02_102639_add_faq_items_to_slangs_table.php`
 
 ## 핵심 로직
 
@@ -74,9 +75,11 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - **기본 정보 입력**: 사용 상황은 한글(`usage_context`)과 영어 번역(`english_usage_context`)을 함께 관리
 - **공개 SEO 필드**: `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`을 통해 공개 슬랭 상세 페이지 URL/메타를 관리
 - **SEO 필드 AI 생성**: 수정 화면의 `SEO 필드 AI 생성` 버튼으로 현재 폼 기준 `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`을 생성하며, 결과는 즉시 DB 저장하지 않고 폼에만 반영
-- **구조화 데이터 강화**: 공개 슬랭 상세는 `DefinedTerm`, `BreadcrumbList`, `FAQPage` JSON-LD를 출력하고, 화면에도 Quick facts/FAQ를 함께 노출해 schema와 실제 콘텐츠가 일치하도록 구성
+- **FAQ AI 생성**: 슬랭 수정 화면에서 `FAQ AI 생성` 버튼으로 Gemini 기반 영문 FAQ 5개를 생성하고 `faq_items` JSON에 즉시 저장. 공개 슬랭 상세에서 `faq_items`가 있으면 AI FAQ를 표시하고, 없으면 기존 하드코딩 fallback 유지
+- **구조화 데이터 강화**: 공개 슬랭 상세는 `DefinedTerm`, `BreadcrumbList`, `FAQPage` JSON-LD를 출력하고, 화면에도 Quick facts/FAQ를 함께 노출해 schema와 실제 콘텐츠가 일치하도록 구성. FAQPage schema는 `faq_items` 우선 사용
 - **AI 참고 설명**: 상세 등록 시 `ai_generation_hint`에 관리자 설명을 저장하고, AI 자동 생성/재생성 시 최신 유행어 의미 해석의 참고 정보로 사용
 - **공개 허브 노출**: `public_slug`가 있고 `apiVisible()` 조건을 만족하는 슬랭만 `/korean-slang` 허브와 공개 상세 페이지에 노출
+- **공개 허브 CTA**: `/korean-slang` 허브 상단 hero와 하단 섹션에 Google Play 다운로드 CTA를 노출하고 `data-cta-track` 속성으로 클릭 추적
 - **블로그 연결**: 관련 블로그 글과 다대다로 연결되어 슬랭 상세에서 관련 글을 보여주고, 블로그 글에서 슬랭 상세로 내부 링크 가능
 - **Thread 콘텐츠 생성/저장**: 목록의 `Thread 생성` 버튼으로 단어별 4가지 Threads 포맷(Word Drop, Did You Know, Korean vs English, Quiz/Poll)을 Gemini로 생성하고 `slangs.thread_post_formats` JSON에 저장. 저장된 포맷은 `Thread 보기` 모달에서 다시 열어 본문/정답 리플을 즉시 복사 가능
 - **Thread 콘텐츠 무효화**: 슬랭 본문, 설명, 사용 상황, 예문 등 Thread 생성의 근거 데이터가 수정되면 저장된 Thread 포맷을 자동 초기화하여 오래된 카피가 재사용되지 않도록 함
@@ -119,3 +122,5 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-04-01 | 공개 SEO 필드 및 공개 슬랭 허브 추가 | `public_slug`/SEO 메타 필드, `/korean-slang` 목록·상세, 블로그 내부 링크 기반 |
 | 2026-04-02 | 공개 SEO 필드 AI 생성 추가 | 수정 화면에서 SEO 메타/slug 생성, 저장 전 폼 반영 방식 유지 |
 | 2026-04-02 | 공개 슬랭 상세 디자인/FAQ/schema 강화 | quick facts, FAQ 표시, CTA polish, JSON-LD 보강 |
+| 2026-04-02 | 공개 슬랭 허브 상단 앱 CTA 추가 | 공식 Play Store 링크 유도 강화 |
+| 2026-04-02 | FAQ AI 생성 기능 추가 | `faq_items` JSON 컬럼, Gemini FAQ 생성, 관리자 생성 버튼, 공개 페이지 AI FAQ 우선 사용 |

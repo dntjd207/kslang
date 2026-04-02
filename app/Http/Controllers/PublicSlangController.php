@@ -32,7 +32,7 @@ class PublicSlangController extends Controller
         return view('public.slangs.index', [
             'slangs' => $slangs,
             'search' => $search,
-            'playStoreUrl' => AppSetting::getValue('play_store_url', ''),
+            'playStoreUrl' => AppSetting::getPlayStoreUrl(),
         ]);
     }
 
@@ -67,7 +67,7 @@ class PublicSlangController extends Controller
         return view('public.slangs.show', [
             'slang' => $slang,
             'relatedSlangs' => $relatedSlangs,
-            'playStoreUrl' => AppSetting::getValue('play_store_url', ''),
+            'playStoreUrl' => AppSetting::getPlayStoreUrl(),
         ]);
     }
 }

@@ -435,6 +435,7 @@ class SlangController extends Controller
                 'usage_context' => $autoFillService->regenerateUsageContext($slang, $validated),
                 'examples' => $autoFillService->generateAdditionalExamples($slang, $validated, 3),
                 'seo_fields' => $autoFillService->generateSeoFields($slang, $validated),
+                'faq' => $this->generateAndStoreFaq($slang, $autoFillService, $validated),
             };
         } catch (Throwable $e) {
             Log::error('Slang section regeneration failed.', [
@@ -459,6 +460,7 @@ class SlangController extends Controller
                 'usage_context' => '사용 상황이 다시 생성되었습니다.',
                 'examples' => '예문 3개가 추가 생성되었습니다.',
                 'seo_fields' => '공개 SEO 필드가 생성되었습니다.',
+                'faq' => 'FAQ가 생성되었습니다.',
             },
         ]);
     }
@@ -568,6 +570,21 @@ class SlangController extends Controller
             'generated_at' => $slang->thread_post_generated_at?->format('Y-m-d H:i'),
             'formats' => $slang->thread_post_formats ?? [],
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array{faq_items: list<array{question: string, answer: string}>}
+     */
+    private function generateAndStoreFaq(Slang $slang, SlangAutoFillService $autoFillService, array $context): array
+    {
+        $result = $autoFillService->generateFaqItems($slang, $context, 5);
+
+        if (! empty($result['faq_items'])) {
+            $slang->update(['faq_items' => $result['faq_items']]);
+        }
+
+        return $result;
     }
 
     private function extractRequestExceptionMessage(RequestException $exception): string

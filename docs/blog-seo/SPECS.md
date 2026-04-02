@@ -13,6 +13,7 @@
 | GET | /korean-slang | PublicSlangController@index | slangs.public.index |
 | GET | /korean-slang/{slang:public_slug} | PublicSlangController@show | slangs.public.show |
 | POST | /cta-clicks | CtaClickController@store | cta-clicks.store |
+| GET | /admin/cta-clicks | Admin\CtaClickController@index | admin.cta-clicks.index |
 | GET | /admin/blog-posts | Admin\BlogPostController@index | admin.blog-posts.index |
 | GET | /admin/blog-posts/create | Admin\BlogPostController@create | admin.blog-posts.create |
 | POST | /admin/blog-posts | Admin\BlogPostController@store | admin.blog-posts.store |
@@ -28,6 +29,7 @@
 ### 백엔드
 - `app/Models/BlogPost.php` — 블로그 모델 (상태, 번역 상태, slug, 카테고리/태그 raw 필드, 공개 accessor, related slangs 관계)
 - `app/Models/CtaClick.php` — 공개 CTA 클릭 이벤트 저장 모델
+- `app/Http/Controllers/Admin/CtaClickController.php` — 관리자 CTA 클릭 집계 대시보드
 - `app/Models/Slang.php` — 공개 SEO용 `public_slug`, `public_title_en`, `public_summary_en`, SEO 메타 필드 추가
 - `app/Http/Controllers/Admin/BlogPostController.php` — 관리자 블로그 CRUD + AI 초안/번역 JSON 응답
 - `app/Http/Controllers/BlogController.php` — 공개 블로그 목록/상세
@@ -46,6 +48,7 @@
 - `config/services.php` — `services.gemini.translation_model`
 
 ### 프론트엔드
+- `resources/views/admin/cta-clicks/index.blade.php` — 관리자 CTA 클릭 집계 대시보드
 - `resources/views/admin/blog-posts/index.blade.php` — 관리자 블로그 목록 (상태/번역 상태/카테고리/태그 필터)
 - `resources/views/admin/blog-posts/create.blade.php`
 - `resources/views/admin/blog-posts/edit.blade.php`
@@ -56,10 +59,10 @@
 - `resources/views/public/slangs/index.blade.php`
 - `resources/views/public/slangs/show.blade.php` — quick facts, FAQ, 강화된 schema, CTA
 - `resources/views/components/admin/sidebar.blade.php` — Blog SEO 메뉴 추가
-- `resources/views/components/public/navbar.blade.php` — Blog / Korean Slang 공개 메뉴 추가
+- `resources/views/components/public/navbar.blade.php` — Blog / Korean Slang 공개 메뉴 + 공통 다운로드 CTA
 - `resources/views/components/public/footer.blade.php` — Blog / Korean Slang / Privacy / Terms 링크 추가
 - `resources/views/partials/landing/preview.blade.php` — 랜딩 미리보기 카드에서 공개 슬랭 상세로 링크
-- `resources/views/layouts/public.blade.php` — CTA tracking endpoint 주입
+- `resources/views/layouts/public.blade.php` — CTA tracking endpoint 주입 + 공통 Play Store URL 전달
 - `resources/js/app.js` — `data-cta-track` 기반 keepalive CTA 클릭 추적
 
 ### 마이그레이션
@@ -71,6 +74,7 @@
 ### 테스트
 - `tests/Feature/Admin/BlogPostManagementTest.php`
 - `tests/Feature/Admin/BlogPostAiActionsTest.php`
+- `tests/Feature/Admin/CtaClickDashboardTest.php`
 - `tests/Feature/BlogPublicPagesTest.php`
 - `tests/Feature/CtaClickTrackingTest.php`
 - `tests/Feature/PublicSlangPageTest.php`
@@ -88,10 +92,12 @@
 - 블로그 본문과 영어 공개본은 TinyMCE 기반 HTML 에디터로 작성하며 `clean()`으로 저장 전 정화
 - AI 초안 생성은 현재 폼 값을 기준으로 한국어/영어 초안과 SEO 메타를 함께 반환
 - 영어 재번역은 한국어 원본을 기준으로 `gemini-3.1-flash-lite-preview` 모델로 생성하며, category/tag 입력도 프롬프트 맥락으로 함께 사용
-- 공개 blog/slang 페이지의 Google Play CTA는 `data-cta-track` 속성으로 추적되며 `cta_clicks` 테이블에 출처 페이지/위치/source id를 저장
+- 공개 blog/slang 페이지와 공통 navbar의 Google Play CTA는 `data-cta-track` 속성으로 추적되며 `cta_clicks` 테이블에 출처 페이지/위치/source id를 저장
 - 공개 슬랭 상세는 기존 `slangs` 데이터를 재사용하며 `public_slug` 기반 URL을 사용
 - 공개 blog/slang 페이지는 canonical, OG, Twitter 메타와 JSON-LD를 포함하고, 슬랭 상세는 `DefinedTerm + BreadcrumbList + FAQPage` 구조화 데이터를 노출
 - `sitemap.xml`에 blog 목록/상세와 공개 slang 목록/상세를 모두 포함
+- 블로그 상세 페이지는 HTML 본문의 h2/h3 태그를 서버 사이드 파싱하여 slug 기반 앵커 ID를 삽입하고, 사이드바에 Table of Contents를 표시
+- 관리자 CTA 집계 대시보드(`/admin/cta-clicks`)에서 기간별 총 클릭, 출처/위치별 분류, 일별 추이 차트, Top 블로그/슬랭, 최근 이벤트를 확인 가능
 
 ## API 엔드포인트
 
@@ -103,4 +109,5 @@
 |------|----------|------|
 | 2026-04-01 | F-013 SEO 블로그 & 공개 슬랭 허브 구현 | 관리자 블로그 CRUD, 임시 저장, AI 초안/번역, 공개 blog/slang 페이지, sitemap 연동 |
 | 2026-04-02 | 카테고리/태그 + 자동 임시저장 + 관리자 UI polish 확장 | taxonomy raw 필드, autosave endpoint, public filter/badge |
-| 2026-04-02 | 공개 디자인 polish + CTA 클릭 추적 + schema 강화 | featured blog, CTA tracking, slang FAQ/DefinedTerm/BreadcrumbList/FAQPage |
+| 2026-04-02 | 공개 디자인 polish + CTA 클릭 추적 + 공통 navbar CTA 확장 | featured blog, CTA tracking, slang FAQ/DefinedTerm/BreadcrumbList/FAQPage |
+| 2026-04-02 | CTA 집계 관리자 화면 + 블로그 TOC/heading anchor 추가 | 관리자 대시보드, 기간별 필터, 서버사이드 TOC 파싱, 사이드바 목차 |

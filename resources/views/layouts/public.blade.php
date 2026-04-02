@@ -11,17 +11,22 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
+@php
+    $resolvedPlayStoreUrl = isset($playStoreUrl)
+        ? \App\Models\AppSetting::resolvePlayStoreUrl($playStoreUrl)
+        : \App\Models\AppSetting::getPlayStoreUrl();
+@endphp
 <body
     data-cta-endpoint="{{ route('cta-clicks.store') }}"
     class="min-h-screen flex flex-col @yield('body_class', 'bg-white text-gray-900')"
 >
-    <x-public.navbar />
+    <x-public.navbar :play-store-url="$resolvedPlayStoreUrl" />
 
     <main class="flex-1">
         @yield('content')
     </main>
 
-    <x-public.footer />
+    <x-public.footer :play-store-url="$resolvedPlayStoreUrl" />
 
     @stack('scripts')
 </body>

@@ -12,7 +12,7 @@
 @endsection
 
 @php
-    $faqItems = [
+    $faqItems = !empty($slang->faq_items) ? $slang->faq_items : [
         [
             'question' => "What does {$slang->korean} mean in Korean?",
             'answer' => $slang->english_description,

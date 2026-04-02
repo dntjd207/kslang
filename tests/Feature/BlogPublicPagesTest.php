@@ -63,6 +63,7 @@ it('shows published blog posts on the public index and detail pages', function (
         ->assertSuccessful()
         ->assertSee('What Does 억까 Mean in Korean?')
         ->assertSee('Featured guide')
+        ->assertSee('data-cta-source-type="site_nav"', false)
         ->assertSee('data-cta-source-type="blog_index"', false)
         ->assertDontSee('Draft Only');
 
@@ -102,6 +103,23 @@ it('filters the public blog index by category and tag', function () {
         ->assertSuccessful()
         ->assertSee('Usage Post')
         ->assertDontSee('Meaning Post');
+});
+
+it('shows table of contents from blog post headings', function () {
+    $blogPost = BlogPost::factory()->published()->create([
+        'slug' => 'toc-test-post',
+        'title_en' => 'TOC Test',
+        'body_en' => '<h2>Introduction</h2><p>Hello</p><h3>Background</h3><p>Details</p><h2>Conclusion</h2><p>End</p>',
+    ]);
+
+    $this->get(route('blog.show', ['blogPost' => $blogPost->slug]))
+        ->assertSuccessful()
+        ->assertSee('Table of Contents')
+        ->assertSee('id="introduction"', false)
+        ->assertSee('id="background"', false)
+        ->assertSee('id="conclusion"', false)
+        ->assertSee('href="#introduction"', false)
+        ->assertSee('href="#conclusion"', false);
 });
 
 it('includes published blog and public slang urls in the sitemap', function () {

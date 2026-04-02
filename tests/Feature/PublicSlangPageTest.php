@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AppSetting;
 use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Slang;
@@ -43,6 +44,14 @@ function publicSlangEntry(array $overrides = []): Slang
     ], $overrides));
 }
 
+it('shows official landing download ctas when no custom play store setting exists', function () {
+    $this->get(route('landing'))
+        ->assertSuccessful()
+        ->assertSee(AppSetting::DEFAULT_PLAY_STORE_URL)
+        ->assertSee('data-cta-source-type="site_nav"', false)
+        ->assertSee('data-cta-source-type="landing"', false);
+});
+
 it('shows the public slang detail page with examples and related blog posts', function () {
     $category = publicSlangCategory();
     $slang = publicSlangEntry();
@@ -80,6 +89,39 @@ it('shows the public slang detail page with examples and related blog posts', fu
         ->assertSee('What Does 억까 Mean in Korean?');
 });
 
+it('shows ai generated faq items on slang detail page when available', function () {
+    $faqItems = [
+        ['question' => 'What does 억까 mean literally?', 'answer' => 'It roughly translates to unfair criticism or nitpicking.'],
+        ['question' => 'Is 억까 offensive?', 'answer' => 'It is mild slang and generally not considered offensive.'],
+    ];
+
+    $slang = publicSlangEntry([
+        'faq_items' => $faqItems,
+    ]);
+
+    $response = $this->get(route('slangs.public.show', ['slang' => $slang->public_slug]));
+
+    $response
+        ->assertSuccessful()
+        ->assertSee('What does 억까 mean literally?')
+        ->assertSee('It roughly translates to unfair criticism or nitpicking.')
+        ->assertSee('Is 억까 offensive?')
+        ->assertSee('"@type": "FAQPage"', false);
+});
+
+it('falls back to default faq items when faq_items is null', function () {
+    $slang = publicSlangEntry([
+        'faq_items' => null,
+    ]);
+
+    $response = $this->get(route('slangs.public.show', ['slang' => $slang->public_slug]));
+
+    $response
+        ->assertSuccessful()
+        ->assertSee('What does 억까 mean in Korean?')
+        ->assertSee('FAQ');
+});
+
 it('shows public slang entries on the dictionary index and hides non-public entries', function () {
     publicSlangEntry([
         'public_slug' => 'eok-kka',
@@ -113,5 +155,6 @@ it('shows public slang entries on the dictionary index and hides non-public entr
         ->assertSuccessful()
         ->assertSee('억까')
         ->assertSee('짤')
+        ->assertSee('data-cta-placement="hero"', false)
         ->assertDontSee('비공개');
 });

@@ -1,3 +1,7 @@
+@props([
+    'playStoreUrl' => '',
+])
+
 @php
     $isLanding = request()->routeIs('landing');
     $footerBg = $isLanding ? 'bg-slate-950' : 'bg-gray-900 text-gray-400';

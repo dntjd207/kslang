@@ -65,7 +65,9 @@
                     placeholder="https://play.google.com/store/apps/..."
                     class="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm {{ $errors->has('play_store_url') ? 'border-red-500' : 'border-gray-300' }}"
                 />
-                <p class="mt-1 text-sm text-gray-500">Google Play Store 앱 페이지 URL입니다. 비워두면 랜딩 페이지에 "Coming Soon"으로 표시됩니다.</p>
+                <p class="mt-1 text-sm text-gray-500">
+                    Google Play Store 앱 페이지 URL입니다. 비워두면 기본 공식 링크({{ \App\Models\AppSetting::DEFAULT_PLAY_STORE_URL }})가 공개 사이트와 앱 버전 API에 사용됩니다.
+                </p>
                 @error('play_store_url')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror

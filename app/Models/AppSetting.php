@@ -6,10 +6,28 @@ use Illuminate\Database\Eloquent\Model;
 
 class AppSetting extends Model
 {
+    public const DEFAULT_PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.kslang.application';
+
     protected $fillable = [
         'key',
         'value',
     ];
+
+    public static function resolvePlayStoreUrl(?string $playStoreUrl): string
+    {
+        $resolvedPlayStoreUrl = trim((string) $playStoreUrl);
+
+        return $resolvedPlayStoreUrl !== ''
+            ? $resolvedPlayStoreUrl
+            : self::DEFAULT_PLAY_STORE_URL;
+    }
+
+    public static function getPlayStoreUrl(): string
+    {
+        return static::resolvePlayStoreUrl(
+            static::where('key', 'play_store_url')->value('value')
+        );
+    }
 
     public static function getValue(string $key, string $default = ''): string
     {

@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\BlogPost;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class BlogController extends Controller
@@ -26,7 +27,7 @@ class BlogController extends Controller
 
         return view('public.blog.index', [
             'blogPosts' => $blogPosts,
-            'playStoreUrl' => AppSetting::getValue('play_store_url', ''),
+            'playStoreUrl' => AppSetting::getPlayStoreUrl(),
             'activeCategory' => $category,
             'activeTag' => $tag,
             'availableCategories' => $this->getPublishedCategories(),
@@ -57,11 +58,70 @@ class BlogController extends Controller
             ->limit(3)
             ->get();
 
+        [$bodyWithAnchors, $tocItems] = $this->parseHeadingsAndBuildToc((string) $blogPost->body_en);
+
         return view('public.blog.show', [
             'blogPost' => $blogPost,
             'relatedPosts' => $relatedPosts,
-            'playStoreUrl' => AppSetting::getValue('play_store_url', ''),
+            'playStoreUrl' => AppSetting::getPlayStoreUrl(),
+            'bodyHtml' => $bodyWithAnchors,
+            'tocItems' => $tocItems,
         ]);
+    }
+
+    /**
+     * HTML 본문에서 h2/h3 태그를 파싱하여 앵커 ID를 삽입하고 TOC 배열을 반환.
+     *
+     * @return array{0: string, 1: list<array{id: string, text: string, level: int}>}
+     */
+    private function parseHeadingsAndBuildToc(string $html): array
+    {
+        if (trim($html) === '') {
+            return ['', []];
+        }
+
+        $tocItems = [];
+        $slugCounts = [];
+
+        $processed = preg_replace_callback(
+            '/<(h[23])([^>]*)>(.*?)<\/\1>/is',
+            function (array $matches) use (&$tocItems, &$slugCounts): string {
+                $tag = $matches[1];
+                $attrs = $matches[2];
+                $innerHtml = $matches[3];
+                $plainText = trim(strip_tags($innerHtml));
+
+                $slug = Str::slug($plainText);
+
+                if ($slug === '') {
+                    $slug = 'section';
+                }
+
+                if (isset($slugCounts[$slug])) {
+                    $slugCounts[$slug]++;
+                    $slug = "{$slug}-{$slugCounts[$slug]}";
+                } else {
+                    $slugCounts[$slug] = 0;
+                }
+
+                $level = (int) substr($tag, 1);
+
+                $tocItems[] = [
+                    'id' => $slug,
+                    'text' => $plainText,
+                    'level' => $level,
+                ];
+
+                if (preg_match('/\bid=["\']/', $attrs)) {
+                    return $matches[0];
+                }
+
+                return "<{$tag} id=\"{$slug}\"{$attrs}>{$innerHtml}</{$tag}>";
+            },
+            $html
+        );
+
+        return [$processed ?? $html, $tocItems];
     }
 
     /**

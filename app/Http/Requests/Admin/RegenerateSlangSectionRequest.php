@@ -17,7 +17,7 @@ class RegenerateSlangSectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'section' => ['required', 'string', 'in:descriptions,usage_context,examples,seo_fields'],
+            'section' => ['required', 'string', 'in:descriptions,usage_context,examples,seo_fields,faq'],
             'korean' => ['nullable', 'string', 'max:255'],
             'ai_generation_hint' => ['nullable', 'string', 'max:2000'],
             'pronunciation' => ['nullable', 'string', 'max:255'],

@@ -165,8 +165,8 @@
                 </div>
 
                 <div class="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-                    <div class="prose prose-gray max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-fuchsia-600 prose-a:underline prose-li:text-gray-700 prose-strong:text-gray-900 prose-blockquote:border-fuchsia-200 prose-blockquote:text-gray-600 prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-td:border prose-td:border-gray-300">
-                    {!! $blogPost->body_en !!}
+                    <div class="prose prose-gray max-w-none prose-headings:text-gray-900 prose-headings:scroll-mt-24 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-fuchsia-600 prose-a:underline prose-li:text-gray-700 prose-strong:text-gray-900 prose-blockquote:border-fuchsia-200 prose-blockquote:text-gray-600 prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-td:border prose-td:border-gray-300">
+                    {!! $bodyHtml !!}
                     </div>
                 </div>
 
@@ -200,6 +200,22 @@
             </div>
 
             <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
+                @if (!empty($tocItems))
+                    <nav class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+                        <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-fuchsia-600">Table of Contents</h2>
+                        <ul class="mt-4 space-y-2 text-sm">
+                            @foreach ($tocItems as $tocItem)
+                                <li class="{{ $tocItem['level'] === 3 ? 'pl-4' : '' }}">
+                                    <a href="#{{ $tocItem['id'] }}"
+                                       class="block leading-snug text-gray-600 transition hover:text-fuchsia-600">
+                                        {{ $tocItem['text'] }}
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </nav>
+                @endif
+
                 <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
                     <h2 class="text-xl font-bold text-gray-900">Article snapshot</h2>
                     <dl class="mt-4 space-y-4 text-sm">

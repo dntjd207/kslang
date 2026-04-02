@@ -2,7 +2,7 @@
 
 ## 개요
 
-kslang 앱을 소개하는 공개 웹 랜딩 페이지(`/`). 영어로 작성되며, 앱의 핵심 기능을 소개하고 Google Play Store 다운로드를 유도한다. slangs 테이블에서 level 1~2의 활성 데이터를 최대 8개까지 미리보기 카드로 표시한다.
+kslang 앱을 소개하는 공개 웹 랜딩 페이지(`/`). 영어로 작성되며, 앱의 핵심 기능을 소개하고 Google Play Store 다운로드를 유도한다. slangs 테이블에서 level 1~2의 활성 데이터를 최대 8개까지 미리보기 카드로 표시한다. 공개 CTA는 저장된 `play_store_url`이 비어 있어도 공식 Play Store URL을 fallback으로 사용한다.
 
 ## Routes
 
@@ -26,8 +26,9 @@ kslang 앱을 소개하는 공개 웹 랜딩 페이지(`/`). 영어로 작성되
 ## 핵심 로직
 
 - slangs 테이블에서 `publicVisible()`, `level IN (1,2)`, `sort_order ASC`, `LIMIT 8` 조회
-- app_settings 테이블에서 `play_store_url` 값 조회 (`AppSetting::getValue()` 활용)
-- play_store_url이 빈 문자열이거나 미설정 시 다운로드 버튼 "Coming Soon" 표시
+- app_settings 테이블에서 `play_store_url` 값 조회 (`AppSetting::getPlayStoreUrl()` 활용)
+- `play_store_url`이 빈 문자열이거나 미설정이면 공식 Play Store URL(`https://play.google.com/store/apps/details?id=com.kslang.application`)을 fallback으로 사용
+- 히어로/하단 다운로드 CTA는 `data-cta-track` 속성으로 클릭 추적 가능
 - 미리보기 데이터 0건 시 안내 메시지 표시
 - 미리보기 카드 클릭 시 공개 슬랭 상세(`/korean-slang/{public_slug}`)로 이동
 
@@ -49,3 +50,4 @@ kslang 앱을 소개하는 공개 웹 랜딩 페이지(`/`). 영어로 작성되
 | 2026-02-28 | 랜딩 페이지 초기 구현 | F-009 |
 | 2026-03-01 | 유행어/트렌드 표현 포함 강조 + 한국 거주 관리자 검수 신뢰 어필 섹션 추가, SEO 메타 태그 업데이트 | |
 | 2026-04-01 | 미리보기 카드 공개 슬랭 상세 연결 + 공개 네비게이션 확장 | blog/slang 허브 연동 |
+| 2026-04-02 | 기본 Play Store URL fallback + 랜딩 CTA 추적 연결 | 공식 앱 링크 고정 |

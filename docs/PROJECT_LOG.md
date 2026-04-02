@@ -478,3 +478,29 @@
 ### 주요 결정 사항
 - CTA 추적은 별도 analytics 의존성 없이 서버 테이블 적재 방식으로 먼저 구현하여 출처 페이지/위치별 클릭 분석이 가능하도록 설계
 - 구조화 데이터는 화면에 실제로 보이는 FAQ/quick facts와 일치하도록 맞춰, 검색엔진용 schema와 사용자 노출 콘텐츠가 어긋나지 않도록 설계
+
+---
+
+### 작업 내용
+- CTA 클릭 집계 관리자 화면 추가
+  - `Admin\CtaClickController` 생성: 기간별(1일/7일/30일/90일/전체) 필터, 출처 유형별/위치별 집계, 일별 추이 바 차트, Top 블로그·슬랭 랭킹, 최근 클릭 이벤트 테이블
+  - `/admin/cta-clicks` 라우트 추가, 사이드바에 CTA Clicks 메뉴 추가
+  - Pest 테스트 추가: 인증 필수, 대시보드 렌더링, 출처/위치 그룹핑, 기간 필터
+- 블로그 공개 페이지 목차/heading anchor 추가
+  - `BlogController@show`에서 HTML 본문의 h2/h3 태그를 파싱하여 slug 기반 앵커 ID 삽입
+  - 블로그 상세 사이드바에 Table of Contents 카드 추가, h3는 들여쓰기로 계층 표현
+  - heading에 `scroll-mt-24` 적용으로 sticky nav 겹침 방지
+  - Pest 테스트 추가: TOC 렌더링, heading 앵커 삽입, TOC 링크 확인
+- 슬랭 상세 FAQ AI 생성 추가
+  - `slangs` 테이블에 `faq_items` JSON 컬럼 추가 마이그레이션 생성
+  - `SlangAutoFillService@generateFaqItems`: Gemini responseSchema로 영문 FAQ 5개 생성
+  - 슬랭 수정 화면에 FAQ 생성 버튼 + 미리보기 UI 추가, 생성 시 즉시 DB 저장
+  - `regenerateSection` 흐름에 `faq` 섹션 추가 (기존 descriptions/usage_context/examples/seo_fields와 동일 패턴)
+  - 공개 슬랭 상세에서 `faq_items`가 있으면 AI 생성 FAQ를 표시하고, 없으면 기존 하드코딩 fallback 유지
+  - FAQPage JSON-LD schema도 동일하게 `faq_items` 우선 사용
+  - Pest 테스트 추가: AI FAQ 렌더링, fallback FAQ 검증
+
+### 주요 결정 사항
+- CTA 집계 화면은 별도 집계 테이블/cron 없이 `cta_clicks` 테이블을 직접 집계하여 구현 단순성을 유지하고, 데이터 규모가 커지면 이후 집계 테이블로 전환
+- 블로그 TOC는 서버 사이드에서 HTML을 regex로 파싱하여 JS 의존성 없이 구현하고, 기존에 id 속성이 있는 heading은 건드리지 않도록 보호
+- FAQ AI 생성은 다른 섹션 재생성과 달리 생성 즉시 DB에 저장하는 방식으로 구현 — FAQ는 폼 인라인 필드가 아닌 JSON 덩어리이므로 폼 반영/검토 패턴이 불필요

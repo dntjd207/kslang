@@ -55,6 +55,10 @@ return [
         'temporary_url_minutes' => (int) env('SUPERTONE_TEMPORARY_URL_MINUTES', 60),
     ],
 
+    'tinymce' => [
+        'api_key' => env('TINYMCE_API_KEY', 'no-api-key'),
+    ],
+
     'audio' => [
         'disk' => env('AUDIO_STORAGE_DISK', env('SUPERTONE_STORAGE_DISK', 's3')),
         'legacy_disk' => env('AUDIO_LEGACY_DISK', 'public'),

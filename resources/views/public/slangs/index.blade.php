@@ -31,6 +31,23 @@
                 Browse slang explanations, nuance, category context, and related articles in one searchable hub.
             </p>
 
+            @if ($playStoreUrl)
+                <div class="mt-6">
+                    <a
+                        href="{{ $playStoreUrl }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-cta-track
+                        data-cta-target="google_play"
+                        data-cta-source-type="slang_index"
+                        data-cta-placement="hero"
+                        class="inline-flex items-center rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                    >
+                        Download on Google Play
+                    </a>
+                </div>
+            @endif
+
             <form method="GET" action="{{ route('slangs.public.index') }}" class="mt-8 max-w-2xl">
                 <div class="flex flex-col gap-3 sm:flex-row">
                     <input
