@@ -71,11 +71,25 @@
 @section('content')
     <div class="overflow-hidden">
         @include('partials.landing.hero', ['playStoreUrl' => $playStoreUrl])
-        @include('partials.landing.target-audience')
-        @include('partials.landing.features')
-        @include('partials.landing.curated')
-        @include('partials.landing.how-it-works')
-        @include('partials.landing.preview', ['previewSlangs' => $previewSlangs])
-        @include('partials.landing.download', ['playStoreUrl' => $playStoreUrl])
+
+        {{-- Below-fold sections: content-visibility skips layout/paint until scrolled near --}}
+        <div style="content-visibility:auto;contain-intrinsic-size:auto 800px">
+            @include('partials.landing.target-audience')
+        </div>
+        <div style="content-visibility:auto;contain-intrinsic-size:auto 900px">
+            @include('partials.landing.features')
+        </div>
+        <div style="content-visibility:auto;contain-intrinsic-size:auto 700px">
+            @include('partials.landing.curated')
+        </div>
+        <div style="content-visibility:auto;contain-intrinsic-size:auto 900px">
+            @include('partials.landing.how-it-works')
+        </div>
+        <div style="content-visibility:auto;contain-intrinsic-size:auto 600px">
+            @include('partials.landing.preview', ['previewSlangs' => $previewSlangs])
+        </div>
+        <div style="content-visibility:auto;contain-intrinsic-size:auto 500px">
+            @include('partials.landing.download', ['playStoreUrl' => $playStoreUrl])
+        </div>
     </div>
 @endsection

@@ -1,3 +1,4 @@
+@import './pretendard-variable.css';
 @import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 
@@ -5,6 +6,12 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+
+@font-face {
+    font-family: 'Pretendard Variable';
+    font-display: swap;
+    src: local('Pretendard Variable');
+}
 
 @theme {
     --font-sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI',
