@@ -1,22 +1,23 @@
 <section class="relative pt-32 pb-20 md:pt-48 md:pb-32 flex flex-col items-center justify-center min-h-[90vh]">
-    <!-- Background Effects (isolated from text layer) -->
-    <div class="absolute inset-0 overflow-hidden -z-10" style="contain:strict">
-        <!-- Floating Blobs — will-change promotes to compositor layer, reducing main-thread paint cost -->
+    <!-- Background Effects — deferred: blobs start hidden to avoid blocking LCP paint -->
+    <div id="hero-bg" class="absolute inset-0 overflow-hidden -z-10 opacity-0 transition-opacity duration-700" style="contain:strict">
         <div class="absolute -top-[30%] -left-[15%] w-[65%] h-[65%] rounded-full bg-fuchsia-500/30 blur-[100px] animate-blob-1 will-change-transform"></div>
         <div class="absolute top-[10%] -right-[15%] w-[55%] h-[55%] rounded-full bg-cyan-500/25 blur-[100px] animate-blob-2 will-change-transform"></div>
         <div class="absolute -bottom-[15%] left-[10%] w-[70%] h-[70%] rounded-full bg-violet-600/25 blur-[100px] animate-blob-3 will-change-transform"></div>
         <div class="absolute top-[30%] left-[40%] w-[40%] h-[40%] rounded-full bg-indigo-500/20 blur-[80px] animate-blob-4 will-change-transform"></div>
 
-        <!-- Aurora Gradient Sweep -->
         <div class="absolute inset-0 bg-[linear-gradient(125deg,transparent_15%,rgba(217,70,239,0.15)_30%,rgba(139,92,246,0.12)_42%,rgba(99,102,241,0.1)_55%,rgba(6,182,212,0.15)_68%,transparent_85%)] bg-[length:250%_100%] animate-aurora will-change-[background-position]"></div>
 
-        <!-- Center Glow (behind title) -->
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] md:w-[900px] md:h-[500px] rounded-full bg-[radial-gradient(ellipse,rgba(139,92,246,0.25)_0%,rgba(217,70,239,0.1)_40%,transparent_70%)] animate-glow-pulse will-change-[transform,opacity]"></div>
 
-        <!-- Dot Grid -->
         <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] [mask-image:linear-gradient(to_bottom,white_50%,transparent)]"></div>
 
-        <!-- Bottom fade to page bg -->
+        <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-950 to-transparent"></div>
+    </div>
+
+    <!-- Lightweight static glow — visible immediately while blobs load -->
+    <div class="absolute inset-0 -z-10" aria-hidden="true">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] md:w-[1000px] md:h-[550px] rounded-full bg-[radial-gradient(ellipse,rgba(139,92,246,0.2)_0%,rgba(217,70,239,0.08)_40%,transparent_70%)]"></div>
         <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-950 to-transparent"></div>
     </div>
 
@@ -65,22 +66,28 @@
 
         <!-- Stats -->
         <div class="mt-20 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5 max-w-4xl mx-auto">
-            <div class="group rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm p-5 md:p-6 text-center transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15] hover:-translate-y-1">
+            <div class="group rounded-2xl bg-white/[0.04] border border-white/[0.08] p-5 md:p-6 text-center transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15] hover:-translate-y-1">
                 <p class="text-3xl md:text-4xl font-black text-white">4</p>
                 <p class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-semibold">Intensity Levels</p>
             </div>
-            <div class="group rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm p-5 md:p-6 text-center transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15] hover:-translate-y-1">
+            <div class="group rounded-2xl bg-white/[0.04] border border-white/[0.08] p-5 md:p-6 text-center transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15] hover:-translate-y-1">
                 <p class="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-cyan-400">Seoul</p>
                 <p class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-semibold">Based Curation</p>
             </div>
-            <div class="group rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm p-5 md:p-6 text-center transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15] hover:-translate-y-1">
+            <div class="group rounded-2xl bg-white/[0.04] border border-white/[0.08] p-5 md:p-6 text-center transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15] hover:-translate-y-1">
                 <p class="text-3xl md:text-4xl font-black text-white">100%</p>
                 <p class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-semibold">Human Verified</p>
             </div>
-            <div class="group rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm p-5 md:p-6 text-center transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15] hover:-translate-y-1">
+            <div class="group rounded-2xl bg-white/[0.04] border border-white/[0.08] p-5 md:p-6 text-center transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15] hover:-translate-y-1">
                 <p class="text-3xl md:text-4xl font-black text-white">Free</p>
                 <p class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-semibold">To Start</p>
             </div>
         </div>
     </div>
 </section>
+
+<script>
+requestAnimationFrame(function(){requestAnimationFrame(function(){
+    var bg=document.getElementById('hero-bg');if(bg)bg.classList.replace('opacity-0','opacity-100');
+})});
+</script>

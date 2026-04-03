@@ -7,6 +7,7 @@
     <title>@yield('title', 'kslang - Learn Korean Slang')</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/packages/pretendard/dist/web/variable/woff2-dynamic-subset/PretendardVariable.subset.91.woff2">
     @yield('head')
     @yield('meta')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
