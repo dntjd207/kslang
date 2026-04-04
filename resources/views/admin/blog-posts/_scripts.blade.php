@@ -446,6 +446,8 @@ document.addEventListener('DOMContentLoaded', function () {
             setAutosaveStatus('변경사항 감지됨', 'dirty');
             scheduleAutoSave();
         }
+
+        scheduleSeoCheck();
     }
 
     async function runAiAction(endpoint, button) {
@@ -531,5 +533,161 @@ document.addEventListener('DOMContentLoaded', function () {
 
     renderTagChips();
     updateSeoPreview();
+
+    // === SEO 실시간 체크리스트 ===
+    const seoChecklist = document.getElementById('seo-checklist');
+    const seoScoreBadge = document.getElementById('seo-score-badge');
+    let seoDebounceTimer = null;
+
+    function stripHtml(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        return tmp.textContent || '';
+    }
+
+    function countWords(text) {
+        return text.trim().split(/\s+/).filter(Boolean).length;
+    }
+
+    function getHeadings(html, tag) {
+        const re = new RegExp(`<${tag}[^>]*>`, 'gi');
+        return (html || '').match(re) || [];
+    }
+
+    function containsKeyword(text, keyword) {
+        if (!keyword) {
+            return false;
+        }
+        return text.toLowerCase().includes(keyword.toLowerCase());
+    }
+
+    function getVal(id) {
+        return (document.getElementById(id)?.value || '').trim();
+    }
+
+    function getEditorHtml(id) {
+        const editor = tinymce.get(id);
+        if (editor) {
+            return editor.getContent() || '';
+        }
+        return (document.getElementById(id)?.value || '');
+    }
+
+    function checkedSlangCount() {
+        return form.querySelectorAll('input[name="related_slang_ids[]"]:checked').length;
+    }
+
+    function countInternalLinks(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        return tmp.querySelectorAll('a[href]').length;
+    }
+
+    function hasH1InBody(html) {
+        return /<h1[\s>]/i.test(html || '');
+    }
+
+    function runSeoChecks() {
+        const keyword = getVal('primary_keyword');
+        const titleEn = getVal('title_en');
+        const excerptEn = getVal('excerpt_en');
+        const bodyEnHtml = getEditorHtml('body_en_editor');
+        const bodyEnText = stripHtml(bodyEnHtml);
+        const bodyKoHtml = getEditorHtml('body_ko_editor');
+        const seoTitle = getVal('seo_title_en');
+        const seoDesc = getVal('seo_description_en');
+        const slug = getVal('slug');
+        const titleKo = getVal('title_ko');
+        const excerptKo = getVal('excerpt_ko');
+        const categoryName = getVal('category_name');
+        const tagNames = getVal('tag_names');
+
+        const bodyEnWords = countWords(bodyEnText);
+        const h2CountEn = getHeadings(bodyEnHtml, 'h2').length;
+        const h2CountKo = getHeadings(bodyKoHtml, 'h3').length + getHeadings(bodyKoHtml, 'h2').length;
+        const linksInBody = countInternalLinks(bodyEnHtml);
+
+        const checks = [];
+
+        checks.push({ group: '전략', label: '핵심 키워드 입력됨', pass: keyword.length > 0 });
+        checks.push({ group: '전략', label: '검색 의도 선택됨', pass: getVal('search_intent') !== '' });
+        checks.push({ group: '전략', label: '카테고리 지정됨', pass: categoryName.length > 0 });
+        checks.push({ group: '전략', label: '태그 1개 이상', pass: parseTagNames(tagNames).length >= 1 });
+
+        checks.push({ group: '한국어', label: '한국어 제목 있음', pass: titleKo.length > 0 });
+        checks.push({ group: '한국어', label: '한국어 요약 있음', pass: excerptKo.length > 0 });
+        checks.push({ group: '한국어', label: '한국어 본문 있음', pass: stripHtml(bodyKoHtml).length > 50 });
+        checks.push({ group: '한국어', label: '한국어 본문 H2/H3 구조 사용', pass: h2CountKo >= 2 });
+
+        checks.push({ group: '영어 본문', label: '영어 제목 있음', pass: titleEn.length > 0 });
+        checks.push({ group: '영어 본문', label: '영어 제목 60자 이내', pass: titleEn.length > 0 && titleEn.length <= 65, detail: titleEn.length > 0 ? `${titleEn.length}자` : '' });
+        checks.push({ group: '영어 본문', label: '영어 요약 있음', pass: excerptEn.length > 0 });
+        checks.push({ group: '영어 본문', label: '영어 본문 800단어 이상', pass: bodyEnWords >= 800, detail: `${bodyEnWords}단어` });
+        checks.push({ group: '영어 본문', label: '영어 본문 H2 3개 이상', pass: h2CountEn >= 3, detail: `${h2CountEn}개` });
+        checks.push({ group: '영어 본문', label: '본문에 H1 미사용', pass: !hasH1InBody(bodyEnHtml) });
+        checks.push({ group: '영어 본문', label: '본문에 링크 포함', pass: linksInBody >= 1, detail: `${linksInBody}개` });
+
+        checks.push({ group: '키워드', label: '키워드 → 영어 제목에 포함', pass: containsKeyword(titleEn, keyword) });
+        checks.push({ group: '키워드', label: '키워드 → 영어 요약에 포함', pass: containsKeyword(excerptEn, keyword) });
+        checks.push({ group: '키워드', label: '키워드 → 영어 본문에 포함', pass: containsKeyword(bodyEnText, keyword) });
+        checks.push({ group: '키워드', label: '키워드 → SEO 제목에 포함', pass: containsKeyword(seoTitle, keyword) });
+        checks.push({ group: '키워드', label: '키워드 → 슬러그에 포함', pass: containsKeyword(slug.replace(/-/g, ' '), keyword) });
+
+        checks.push({ group: 'SEO 메타', label: 'SEO 제목 입력됨', pass: seoTitle.length > 0 });
+        checks.push({ group: 'SEO 메타', label: 'SEO 제목 50~60자', pass: seoTitle.length >= 50 && seoTitle.length <= 65, detail: seoTitle.length > 0 ? `${seoTitle.length}자` : '' });
+        checks.push({ group: 'SEO 메타', label: 'SEO 설명 입력됨', pass: seoDesc.length > 0 });
+        checks.push({ group: 'SEO 메타', label: 'SEO 설명 140~160자', pass: seoDesc.length >= 130 && seoDesc.length <= 165, detail: seoDesc.length > 0 ? `${seoDesc.length}자` : '' });
+        checks.push({ group: 'SEO 메타', label: '슬러그 입력됨', pass: slug.length > 0 });
+
+        checks.push({ group: '연결', label: '관련 슬랭 1개 이상 연결', pass: checkedSlangCount() >= 1, detail: `${checkedSlangCount()}개` });
+
+        renderSeoChecklist(checks);
+    }
+
+    function renderSeoChecklist(checks) {
+        const passCount = checks.filter(c => c.pass).length;
+        const total = checks.length;
+        const pct = total > 0 ? Math.round((passCount / total) * 100) : 0;
+
+        seoScoreBadge.textContent = `${passCount}/${total}`;
+        seoScoreBadge.className = 'rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ';
+        if (pct >= 85) {
+            seoScoreBadge.classList.add('bg-emerald-100', 'text-emerald-700');
+        } else if (pct >= 55) {
+            seoScoreBadge.classList.add('bg-amber-100', 'text-amber-700');
+        } else {
+            seoScoreBadge.classList.add('bg-red-100', 'text-red-700');
+        }
+
+        let html = '';
+        let currentGroup = '';
+
+        checks.forEach(function (c) {
+            if (c.group !== currentGroup) {
+                currentGroup = c.group;
+                html += `<p class="mt-2 mb-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 first:mt-0">${escapeHtml(currentGroup)}</p>`;
+            }
+
+            const icon = c.pass
+                ? '<svg class="h-3.5 w-3.5 shrink-0 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>'
+                : '<svg class="h-3.5 w-3.5 shrink-0 text-red-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
+
+            const textClass = c.pass ? 'text-gray-500' : 'text-gray-800 font-medium';
+            const detail = c.detail ? ` <span class="text-gray-400">(${escapeHtml(c.detail)})</span>` : '';
+
+            html += `<div class="flex items-center gap-2 py-0.5 ${textClass}">${icon}<span>${escapeHtml(c.label)}${detail}</span></div>`;
+        });
+
+        seoChecklist.innerHTML = html;
+    }
+
+    function scheduleSeoCheck() {
+        window.clearTimeout(seoDebounceTimer);
+        seoDebounceTimer = window.setTimeout(runSeoChecks, 600);
+    }
+
+    form.addEventListener('change', scheduleSeoCheck);
+
+    window.setTimeout(runSeoChecks, 800);
 });
 </script>

@@ -474,15 +474,12 @@
             </div>
         </x-common.card>
 
-        <x-common.card title="SEO 작성 체크리스트">
-            <div class="space-y-3 text-sm text-gray-600">
-                <p>1. 제목은 한 검색 의도에 집중하고 60자 안팎으로 유지합니다.</p>
-                <p>2. 본문은 H2 중심 구조로 나누고, H1은 페이지 제목 하나만 사용합니다.</p>
-                <p>3. 요약 문단에서 핵심 키워드를 자연스럽게 포함합니다.</p>
-                <p>4. 관련 슬랭 상세 페이지를 최소 1개 이상 연결합니다.</p>
-                <p>5. 한국어를 수정한 뒤에는 영어를 다시 생성하거나 직접 갱신합니다.</p>
-                <p>6. 카테고리와 태그는 검색 주제 묶음을 명확히 보여주는 방향으로 간단하게 유지합니다.</p>
+        <x-common.card>
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-gray-800">SEO 실시간 체크</h3>
+                <span id="seo-score-badge" class="rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums bg-slate-100 text-slate-600">0/0</span>
             </div>
+            <div id="seo-checklist" class="space-y-1 text-[13px]"></div>
         </x-common.card>
     </div>
 </div>
