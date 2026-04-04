@@ -16,10 +16,13 @@ class BlogPostAiService
      */
     public function generateDraft(array $context): array
     {
+        $model = (string) config('services.gemini.model', 'gemini-3.1-pro-preview');
+
         $response = $this->geminiService->generate(
             $this->buildDraftPrompt($context),
             $this->draftSchema(),
-            'MEDIUM'
+            'MEDIUM',
+            $model
         );
 
         $data = $response->json();
@@ -29,7 +32,7 @@ class BlogPostAiService
         }
 
         return $this->normalizeDraftPayload($data) + [
-            'translation_model' => (string) config('services.gemini.translation_model', 'gemini-3.1-flash-lite-preview'),
+            'translation_model' => $model,
         ];
     }
 
@@ -39,13 +42,13 @@ class BlogPostAiService
      */
     public function translate(array $context): array
     {
-        $translationModel = (string) config('services.gemini.translation_model', 'gemini-3.1-flash-lite-preview');
+        $model = (string) config('services.gemini.model', 'gemini-3.1-pro-preview');
 
         $response = $this->geminiService->generate(
             $this->buildTranslationPrompt($context),
             $this->translationSchema(),
-            'LOW',
-            $translationModel
+            'MEDIUM',
+            $model
         );
 
         $data = $response->json();
@@ -55,7 +58,7 @@ class BlogPostAiService
         }
 
         return $this->normalizeTranslationPayload($data) + [
-            'translation_model' => $translationModel,
+            'translation_model' => $model,
         ];
     }
 
@@ -90,15 +93,21 @@ class BlogPostAiService
 
 ## 중요한 작성 원칙
 1. 한국어 원본과 영어 공개본을 함께 반환해주세요.
-2. 영어는 번역투보다 자연스러운 SEO 친화 문장으로 작성해주세요.
-3. body_ko와 body_en은 마크다운이 아닌 HTML fragment로 작성해주세요.
-4. HTML은 <h2>, <h3>, <p>, <ul>, <ol>, <li>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <strong>, <em>, <a> 정도만 사용해주세요.
-5. body에는 최소 3개의 H2 섹션이 있어야 합니다.
-6. 한국어와 영어 모두 정보 구조가 명확해야 하며, 뜻/뉘앙스/사용 상황/주의점 중 필요한 내용을 자연스럽게 포함해주세요.
-7. 과장되거나 선정적인 클릭베이트 제목은 금지합니다.
-8. seo_title_en은 60자 내외, seo_description_en은 140~160자 내외로 작성해주세요.
-9. JSON만 반환해주세요.
-10. html, body 태그는 넣지 마세요.
+2. body_ko와 body_en은 마크다운이 아닌 HTML fragment로 작성해주세요.
+3. HTML은 <h2>, <h3>, <p>, <ul>, <ol>, <li>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <strong>, <em>, <a> 정도만 사용해주세요.
+4. body에는 최소 3개의 H2 섹션이 있어야 합니다.
+5. 한국어와 영어 모두 정보 구조가 명확해야 하며, 뜻/뉘앙스/사용 상황/주의점 중 필요한 내용을 자연스럽게 포함해주세요.
+6. 과장되거나 선정적인 클릭베이트 제목은 금지합니다.
+7. seo_title_en은 60자 내외, seo_description_en은 140~160자 내외로 작성해주세요.
+8. JSON만 반환해주세요.
+9. html, body 태그는 넣지 마세요.
+
+## 영어 공개본 작성 규칙
+- 한국어 원문의 톤, 구성, 감정적 뉘앙스를 최대한 살려서 영어로 작성해주세요. 단순 직역이나 요약이 아니라, 원문을 읽었을 때 느끼는 분위기와 에너지를 영어 독자도 느낄 수 있어야 합니다.
+- 한국어 본문에 등장하는 한국어 단어, 예문, 슬랭 표현은 영어로 번역하지 말고 한국어 원문 그대로 표기하세요(예: "대박", "ㅋㅋㅋ", "아 씨발"). 필요하면 괄호 안에 짧은 영어 설명을 추가하세요.
+- 미국 문화나 영어권 독자에게 어색하거나 맞지 않는 비유/표현은 미국 문화에 맞게 자연스럽게 바꿔도 됩니다. 단, 한국어 슬랭 자체의 뜻이나 뉘앙스를 왜곡하면 안 됩니다.
+- 문장 구조와 표현을 다양하게 사용하세요. 같은 패턴의 문장이 반복되지 않도록 하고, 문단마다 다른 리듬과 길이를 써서 사람이 직접 쓴 것처럼 자연스럽게 작성하세요.
+- "In conclusion", "Let's dive in", "Without further ado" 같은 상투적인 AI 문구는 사용하지 마세요.
 PROMPT;
     }
 
@@ -129,15 +138,22 @@ PROMPT;
 - body_ko:
 {$bodyKo}
 
-## 번역 및 현지화 규칙
-1. 영어 제목은 검색 사용자에게 자연스럽고 명확해야 합니다.
-2. excerpt_en은 2~3문장 요약으로 작성해주세요.
-3. body_en은 body_ko의 HTML 구조를 최대한 유지하면서 자연스러운 영어로 바꿔주세요.
-4. 직역보다 의미 전달과 검색 친화성을 우선해주세요.
-5. 한국 문화/인터넷 맥락이 필요한 부분은 영어 독자가 이해할 수 있게 자연스럽게 풀어주세요.
-6. seo_title_en은 60자 내외, seo_description_en은 140~160자 내외로 작성해주세요.
-7. body_en은 HTML fragment만 반환하고 html/body 태그는 넣지 마세요.
-8. JSON만 반환해주세요.
+## 핵심 번역 원칙
+- 한국어 원문의 톤, 구성, 감정적 뉘앙스를 최대한 살려서 영어로 작성하세요. 원문의 분위기와 에너지가 영어 독자에게도 전달되어야 합니다.
+- 한국어 본문에 등장하는 한국어 단어, 예문, 슬랭 표현은 영어로 번역하지 말고 한국어 원문 그대로 표기하세요(예: "대박", "ㅋㅋㅋ", "아 씨발"). 필요하면 괄호 안에 짧은 영어 설명을 추가하세요.
+- 미국 문화나 영어권 독자에게 어색하거나 맞지 않는 비유/표현은 미국 문화에 맞게 자연스럽게 바꿔도 됩니다. 단, 한국어 슬랭 자체의 뜻이나 뉘앙스를 왜곡하면 안 됩니다.
+
+## 글쓰기 스타일 규칙
+- 문장 구조와 표현을 다양하게 사용하세요. 같은 패턴의 문장이 반복되지 않도록 하고, 문단마다 다른 리듬과 길이를 써서 사람이 직접 쓴 것처럼 자연스럽게 작성하세요.
+- "In conclusion", "Let's dive in", "Without further ado", "It's important to note" 같은 상투적인 AI 문구는 절대 사용하지 마세요.
+- 원문의 정보량과 깊이를 줄이거나 단순화하지 마세요. 원문에 있는 내용은 빠짐없이 영어본에도 반영되어야 합니다.
+
+## 포맷 규칙
+1. excerpt_en은 2~3문장 요약으로 작성해주세요.
+2. body_en은 body_ko의 HTML 구조를 최대한 유지하면서 영어로 작성해주세요.
+3. seo_title_en은 60자 내외, seo_description_en은 140~160자 내외로 작성해주세요.
+4. body_en은 HTML fragment만 반환하고 html/body 태그는 넣지 마세요.
+5. JSON만 반환해주세요.
 PROMPT;
     }
 
