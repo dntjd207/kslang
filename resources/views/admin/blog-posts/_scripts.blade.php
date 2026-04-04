@@ -56,9 +56,11 @@ document.addEventListener('DOMContentLoaded', function () {
             'searchreplace', 'preview', 'visualblocks',
         ],
         toolbar: [
-            'undo redo | blocks | bold italic underline | alignleft aligncenter alignright |',
+            'undo redo | blocks fontsize | bold italic underline | forecolor backcolor | alignleft aligncenter alignright |',
             'bullist numlist blockquote | link table | removeformat | searchreplace visualblocks | code preview fullscreen',
         ],
+        font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px',
+        table_advtab: true,
         block_formats: 'Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4',
         content_style: `
             body {
