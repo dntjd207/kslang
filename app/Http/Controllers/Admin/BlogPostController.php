@@ -294,8 +294,12 @@ class BlogPostController extends Controller
         $file = $request->file('file');
         $path = $file->store('blog-images', 'public');
 
+        if ($path === false) {
+            return response()->json(['message' => '이미지 저장에 실패했습니다.'], 500);
+        }
+
         return response()->json([
-            'location' => asset('storage/'.$path),
+            'location' => '/storage/'.$path,
         ]);
     }
 
