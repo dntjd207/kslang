@@ -383,13 +383,16 @@ document.addEventListener('DOMContentLoaded', function () {
         setAutosaveStatus('자동 임시저장 중...', 'saving');
 
         try {
+            const autosaveData = new FormData(form);
+            autosaveData.delete('_method');
+
             const response = await fetch(autosaveEndpoint, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json',
                 },
-                body: new FormData(form),
+                body: autosaveData,
             });
 
             const payload = await response.json();
@@ -454,13 +457,16 @@ document.addEventListener('DOMContentLoaded', function () {
         setFeedback('AI 요청을 처리하고 있습니다...', 'info');
 
         try {
+            const formData = new FormData(form);
+            formData.delete('_method');
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json',
                 },
-                body: new FormData(form),
+                body: formData,
             });
 
             const payload = await response.json();
