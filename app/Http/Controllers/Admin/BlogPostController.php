@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -289,10 +290,35 @@ class BlogPostController extends Controller
     {
         $request->validate([
             'file' => ['required', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:5120'],
+            'custom_name' => ['nullable', 'string', 'max:200'],
         ]);
 
         $file = $request->file('file');
-        $path = $file->store('blog-images', 'public');
+        $extension = $file->getClientOriginalExtension() ?: 'jpg';
+        $customName = trim((string) $request->input('custom_name'));
+
+        if ($customName !== '') {
+            $slug = Str::slug($customName);
+        } else {
+            $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $slug = Str::slug($originalName);
+        }
+
+        if ($slug === '') {
+            $slug = 'image-'.time();
+        }
+
+        $filename = $slug.'.'.$extension;
+        $directory = 'blog-images';
+        $disk = 'public';
+
+        $counter = 1;
+        while (Storage::disk($disk)->exists($directory.'/'.$filename)) {
+            $filename = $slug.'-'.$counter.'.'.$extension;
+            $counter++;
+        }
+
+        $path = $file->storeAs($directory, $filename, $disk);
 
         return response()->json([
             'location' => asset('storage/'.$path),

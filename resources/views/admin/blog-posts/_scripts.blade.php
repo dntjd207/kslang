@@ -64,8 +64,20 @@ document.addEventListener('DOMContentLoaded', function () {
         file_picker_types: 'image',
         images_upload_handler: function (blobInfo) {
             return new Promise(function (resolve, reject) {
+                const originalName = (blobInfo.filename() || '').replace(/\.[^.]+$/, '');
+                const customName = window.prompt(
+                    'SEO 파일명을 입력하세요 (영어, 하이픈 구분)\n예: korean-slang-daebak-meaning\n\n비워두면 원본 파일명을 사용합니다.',
+                    originalName
+                );
+
+                if (customName === null) {
+                    reject('업로드가 취소되었습니다.');
+                    return;
+                }
+
                 const formData = new FormData();
                 formData.append('file', blobInfo.blob(), blobInfo.filename());
+                formData.append('custom_name', customName);
 
                 fetch(`{{ route('admin.blog-posts.upload-image') }}`, {
                     method: 'POST',
