@@ -51,14 +51,48 @@ document.addEventListener('DOMContentLoaded', function () {
         height: 560,
         menubar: 'edit insert view format table tools help',
         plugins: [
-            'advlist', 'autolink', 'lists', 'link', 'table',
+            'advlist', 'autolink', 'lists', 'link', 'image', 'table',
             'code', 'fullscreen', 'wordcount',
             'searchreplace', 'preview', 'visualblocks',
         ],
         toolbar: [
             'undo redo | blocks fontsize | bold italic underline | forecolor backcolor | alignleft aligncenter alignright |',
-            'bullist numlist blockquote | link table | removeformat | searchreplace visualblocks | code preview fullscreen',
+            'bullist numlist blockquote | link image table | removeformat | searchreplace visualblocks | code preview fullscreen',
         ],
+        image_title: true,
+        automatic_uploads: true,
+        file_picker_types: 'image',
+        images_upload_handler: function (blobInfo) {
+            return new Promise(function (resolve, reject) {
+                const formData = new FormData();
+                formData.append('file', blobInfo.blob(), blobInfo.filename());
+
+                fetch(`{{ route('admin.blog-posts.upload-image') }}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                        'Accept': 'application/json',
+                    },
+                    body: formData,
+                })
+                .then(function (response) {
+                    if (!response.ok) {
+                        return response.json().then(function (err) {
+                            reject(err.message || '이미지 업로드에 실패했습니다.');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (data && data.location) {
+                        resolve(data.location);
+                    }
+                })
+                .catch(function () {
+                    reject('이미지 업로드 중 오류가 발생했습니다.');
+                });
+            });
+        },
         font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px',
         table_advtab: true,
         block_formats: 'Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4',
@@ -87,6 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
             th, td { border: 1px solid #d1d5db; padding: 0.75rem; }
             th { background: #f8fafc; font-weight: 700; }
             a { color: #4f46e5; text-decoration: underline; }
+            img { max-width: 100%; height: auto; border-radius: 8px; margin: 1em 0; }
         `,
         min_height: 560,
         link_default_target: '_blank',

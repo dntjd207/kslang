@@ -285,6 +285,20 @@ class BlogPostController extends Controller
             ->values();
     }
 
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:5120'],
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->store('blog-images', 'public');
+
+        return response()->json([
+            'location' => asset('storage/'.$path),
+        ]);
+    }
+
     public static function labelSearchIntent(string $value): string
     {
         return match ($value) {
