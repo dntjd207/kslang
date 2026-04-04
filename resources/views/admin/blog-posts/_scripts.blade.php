@@ -587,6 +587,24 @@ document.addEventListener('DOMContentLoaded', function () {
         return /<h1[\s>]/i.test(html || '');
     }
 
+    function parseImages(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        const imgs = tmp.querySelectorAll('img');
+        const result = [];
+
+        imgs.forEach(function (img) {
+            const src = img.getAttribute('src') || '';
+            const alt = (img.getAttribute('alt') || '').trim();
+            const parts = src.split(/[?#]/)[0].split('/');
+            const filename = parts[parts.length - 1] || src;
+
+            result.push({ src: src, filename: filename, alt: alt, hasAlt: alt.length > 0 });
+        });
+
+        return result;
+    }
+
     function runSeoChecks() {
         const keyword = getVal('primary_keyword');
         const titleEn = getVal('title_en');
@@ -641,10 +659,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
         checks.push({ group: '연결', label: '관련 슬랭 1개 이상 연결', pass: checkedSlangCount() >= 1, detail: `${checkedSlangCount()}개` });
 
-        renderSeoChecklist(checks);
+        const imagesEn = parseImages(bodyEnHtml);
+        const imagesKo = parseImages(bodyKoHtml);
+        const allImages = [
+            ...imagesEn.map(i => ({ ...i, source: 'EN' })),
+            ...imagesKo.map(i => ({ ...i, source: 'KO' })),
+        ];
+        const imagesWithoutAlt = allImages.filter(i => !i.hasAlt);
+
+        if (allImages.length > 0) {
+            checks.push({ group: '이미지', label: '모든 이미지에 alt 텍스트 있음', pass: imagesWithoutAlt.length === 0, detail: `${allImages.length - imagesWithoutAlt.length}/${allImages.length}` });
+        }
+
+        renderSeoChecklist(checks, allImages);
     }
 
-    function renderSeoChecklist(checks) {
+    function renderSeoChecklist(checks, images) {
         const passCount = checks.filter(c => c.pass).length;
         const total = checks.length;
         const pct = total > 0 ? Math.round((passCount / total) * 100) : 0;
@@ -677,6 +707,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
             html += `<div class="flex items-center gap-2 py-0.5 ${textClass}">${icon}<span>${escapeHtml(c.label)}${detail}</span></div>`;
         });
+
+        if (images && images.length > 0) {
+            html += '<div class="mt-3 rounded-lg border border-gray-200 bg-gray-50/70 p-3">';
+            html += '<p class="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">이미지 상세</p>';
+
+            images.forEach(function (img, idx) {
+                const altIcon = img.hasAlt
+                    ? '<svg class="h-3 w-3 shrink-0 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>'
+                    : '<svg class="h-3 w-3 shrink-0 text-red-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
+
+                const sourceLabel = `<span class="rounded bg-gray-200 px-1 py-0.5 text-[10px] font-semibold text-gray-500">${img.source}</span>`;
+                const altText = img.hasAlt
+                    ? `<span class="text-gray-400">alt: ${escapeHtml(img.alt)}</span>`
+                    : '<span class="font-medium text-red-500">alt 없음</span>';
+
+                html += '<div class="py-1.5' + (idx > 0 ? ' border-t border-gray-200' : '') + '">';
+                html += `<div class="flex items-center gap-1.5">${altIcon} ${sourceLabel} <span class="truncate font-mono text-gray-700" title="${escapeHtml(img.filename)}">${escapeHtml(img.filename)}</span></div>`;
+                html += `<div class="mt-0.5 pl-[18px] text-[11px]">${altText}</div>`;
+                html += '</div>';
+            });
+
+            html += '</div>';
+        }
 
         seoChecklist.innerHTML = html;
     }
