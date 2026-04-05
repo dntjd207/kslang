@@ -242,6 +242,35 @@ class BlogPostController extends Controller
         }
     }
 
+    public function searchSlangs(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->input('q'));
+
+        $query = Slang::query()
+            ->publicVisible()
+            ->orderBy('korean');
+
+        if ($search !== '') {
+            $query->where(function (Builder $q) use ($search): void {
+                $q->where('korean', 'like', "%{$search}%")
+                    ->orWhere('pronunciation', 'like', "%{$search}%")
+                    ->orWhere('public_slug', 'like', "%{$search}%")
+                    ->orWhere('english_description', 'like', "%{$search}%");
+            });
+        }
+
+        $slangs = $query->limit(50)->get(['id', 'korean', 'pronunciation', 'public_slug']);
+
+        return response()->json([
+            'data' => $slangs->map(fn (Slang $slang) => [
+                'id' => $slang->id,
+                'korean' => $slang->korean,
+                'pronunciation' => $slang->pronunciation,
+                'public_slug' => $slang->public_slug,
+            ])->values(),
+        ]);
+    }
+
     /**
      * @return Collection<int, Slang>
      */

@@ -357,17 +357,41 @@
         </x-common.card>
 
         <x-common.card title="관련 공개 슬랭">
-            @if ($relatedSlangs->isEmpty())
-                <p class="text-sm text-gray-500">연결할 공개 슬랭이 아직 없습니다.</p>
-            @else
-                <div class="grid max-h-72 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3 sm:grid-cols-2">
+            <div class="space-y-3">
+                <div class="relative">
+                    <input
+                        type="text"
+                        id="related-slang-search"
+                        placeholder="슬랭 검색 (한국어, 발음, 영어 설명)"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 pl-9 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        autocomplete="off"
+                    >
+                    <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <span id="related-slang-search-spinner" class="absolute right-3 top-1/2 hidden -translate-y-1/2">
+                        <svg class="h-4 w-4 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                    </span>
+                </div>
+
+                <div id="related-slang-list" class="grid max-h-80 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-gray-200 p-3 sm:grid-cols-2"
+                     data-search-url="{{ route('admin.blog-posts.search-slangs') }}"
+                >
                     @foreach ($relatedSlangs as $slang)
-                        <label class="flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2 transition hover:border-indigo-300 hover:bg-indigo-50/40">
+                        <label
+                            class="related-slang-item flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2 transition hover:border-indigo-300 hover:bg-indigo-50/40"
+                            data-slang-id="{{ $slang->id }}"
+                            data-korean="{{ $slang->korean }}"
+                            data-pronunciation="{{ $slang->pronunciation }}"
+                        >
                             <input
                                 type="checkbox"
                                 name="related_slang_ids[]"
                                 value="{{ $slang->id }}"
-                                class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                class="related-slang-checkbox mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                 @checked(in_array($slang->id, (array) $selectedSlangIds, true))
                             >
 
@@ -378,7 +402,11 @@
                         </label>
                     @endforeach
                 </div>
-            @endif
+
+                <p class="text-xs text-gray-500">
+                    체크한 슬랭은 자동으로 맨 위에 표시됩니다. 검색하면 실시간으로 결과가 필터링됩니다.
+                </p>
+            </div>
         </x-common.card>
     </div>
 

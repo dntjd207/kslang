@@ -50,6 +50,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('blog-posts/translate', [BlogPostController::class, 'translate'])->name('blog-posts.translate');
         Route::post('blog-posts/autosave', [BlogPostController::class, 'autosave'])->name('blog-posts.autosave');
         Route::post('blog-posts/upload-image', [BlogPostController::class, 'uploadImage'])->name('blog-posts.upload-image');
+        Route::get('blog-posts/search-slangs', [BlogPostController::class, 'searchSlangs'])->name('blog-posts.search-slangs');
         Route::resource('blog-posts', BlogPostController::class)->except(['show']);
 
         Route::post('slangs/reorder', [SlangController::class, 'reorder'])->name('slangs.reorder');

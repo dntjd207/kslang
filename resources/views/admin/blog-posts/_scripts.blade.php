@@ -296,6 +296,10 @@ document.addEventListener('DOMContentLoaded', function () {
             setFieldValue('seo_title_en', data.seo_title_en);
         }
 
+        if (typeof data.slug !== 'undefined' && data.slug !== '') {
+            setFieldValue('slug', data.slug);
+        }
+
         if (typeof data.seo_description_en !== 'undefined') {
             setFieldValue('seo_description_en', data.seo_description_en);
         }
@@ -536,7 +540,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function hasExistingKoreanContent() {
+        const titleKo = (document.getElementById('title_ko')?.value || '').trim();
+        const excerptKo = (document.getElementById('excerpt_ko')?.value || '').trim();
+
+        const bodyKoEditor = tinymce.get('body_ko_editor');
+        const bodyKoText = bodyKoEditor
+            ? (bodyKoEditor.getContent({ format: 'text' }) || '').trim()
+            : (document.getElementById('body_ko_editor')?.value || '').trim();
+
+        return titleKo !== '' || excerptKo !== '' || bodyKoText !== '';
+    }
+
     generateDraftButton?.addEventListener('click', function () {
+        if (hasExistingKoreanContent()) {
+            if (!window.confirm('한국어 내용이 이미 작성되어 있습니다.\nAI 초안을 생성하면 기존 한국어 + 영어 내용이 모두 덮어씌워집니다.\n\n계속하시겠습니까?')) {
+                return;
+            }
+        }
+
         runAiAction(`{{ route('admin.blog-posts.generate-draft') }}`, generateDraftButton);
     });
 
@@ -580,6 +602,138 @@ document.addEventListener('DOMContentLoaded', function () {
 
     renderTagChips();
     updateSeoPreview();
+
+    // === 관련 슬랭 검색 & 체크 → 맨 위 ===
+    const relatedSlangSearch = document.getElementById('related-slang-search');
+    const relatedSlangList = document.getElementById('related-slang-list');
+    const relatedSlangSpinner = document.getElementById('related-slang-search-spinner');
+    let slangSearchTimer = null;
+    let allSlangData = [];
+
+    (function initSlangData() {
+        if (!relatedSlangList) {
+            return;
+        }
+
+        relatedSlangList.querySelectorAll('.related-slang-item').forEach(function (el) {
+            allSlangData.push({
+                id: parseInt(el.dataset.slangId, 10),
+                korean: el.dataset.korean || '',
+                pronunciation: el.dataset.pronunciation || '',
+            });
+        });
+
+        sortCheckedToTop();
+    })();
+
+    function sortCheckedToTop() {
+        if (!relatedSlangList) {
+            return;
+        }
+
+        const items = Array.from(relatedSlangList.querySelectorAll('.related-slang-item'));
+        const checked = items.filter(function (el) { return el.querySelector('.related-slang-checkbox')?.checked; });
+        const unchecked = items.filter(function (el) { return !el.querySelector('.related-slang-checkbox')?.checked; });
+
+        checked.forEach(function (el) {
+            el.classList.add('border-indigo-300', 'bg-indigo-50/40');
+        });
+        unchecked.forEach(function (el) {
+            el.classList.remove('border-indigo-300', 'bg-indigo-50/40');
+        });
+
+        checked.concat(unchecked).forEach(function (el) {
+            relatedSlangList.appendChild(el);
+        });
+    }
+
+    relatedSlangList?.addEventListener('change', function (e) {
+        if (e.target.classList.contains('related-slang-checkbox')) {
+            sortCheckedToTop();
+            handleDirtyChange();
+            scheduleSeoCheck();
+        }
+    });
+
+    relatedSlangSearch?.addEventListener('input', function () {
+        window.clearTimeout(slangSearchTimer);
+
+        const query = relatedSlangSearch.value.trim();
+
+        if (query === '') {
+            relatedSlangList?.querySelectorAll('.related-slang-item').forEach(function (el) {
+                el.classList.remove('hidden');
+            });
+            sortCheckedToTop();
+            if (relatedSlangSpinner) {
+                relatedSlangSpinner.classList.add('hidden');
+            }
+            return;
+        }
+
+        slangSearchTimer = window.setTimeout(function () {
+            searchSlangs(query);
+        }, 350);
+    });
+
+    async function searchSlangs(query) {
+        if (!relatedSlangList) {
+            return;
+        }
+
+        const searchUrl = relatedSlangList.dataset.searchUrl;
+        if (!searchUrl) {
+            return;
+        }
+
+        if (relatedSlangSpinner) {
+            relatedSlangSpinner.classList.remove('hidden');
+        }
+
+        try {
+            const response = await fetch(`${searchUrl}?q=${encodeURIComponent(query)}`, {
+                headers: { 'Accept': 'application/json' },
+            });
+
+            const payload = await response.json();
+            const matchedIds = new Set((payload.data || []).map(function (s) { return s.id; }));
+
+            relatedSlangList.querySelectorAll('.related-slang-item').forEach(function (el) {
+                const id = parseInt(el.dataset.slangId, 10);
+                const isChecked = el.querySelector('.related-slang-checkbox')?.checked;
+
+                if (isChecked || matchedIds.has(id)) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            (payload.data || []).forEach(function (s) {
+                if (relatedSlangList.querySelector(`[data-slang-id="${s.id}"]`)) {
+                    return;
+                }
+
+                const label = document.createElement('label');
+                label.className = 'related-slang-item flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2 transition hover:border-indigo-300 hover:bg-indigo-50/40';
+                label.dataset.slangId = s.id;
+                label.dataset.korean = s.korean;
+                label.dataset.pronunciation = s.pronunciation || '';
+
+                label.innerHTML = `<input type="checkbox" name="related_slang_ids[]" value="${s.id}" class="related-slang-checkbox mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"><span class="min-w-0"><span class="block text-sm font-medium text-gray-800">${escapeHtml(s.korean)}</span><span class="block text-xs text-gray-500">${escapeHtml(s.pronunciation || '')}</span></span>`;
+
+                relatedSlangList.appendChild(label);
+            });
+
+            sortCheckedToTop();
+        } catch (e) {
+            // silently fail
+        } finally {
+            if (relatedSlangSpinner) {
+                relatedSlangSpinner.classList.add('hidden');
+            }
+        }
+    }
 
     // === SEO 실시간 체크리스트 ===
     const seoChecklist = document.getElementById('seo-checklist');

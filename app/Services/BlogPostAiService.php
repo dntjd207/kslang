@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class BlogPostAiService
@@ -98,13 +99,25 @@ class BlogPostAiService
 4. body에는 최소 3개의 H2 섹션이 있어야 합니다.
 5. 한국어와 영어 모두 정보 구조가 명확해야 하며, 뜻/뉘앙스/사용 상황/주의점 중 필요한 내용을 자연스럽게 포함해주세요.
 6. 과장되거나 선정적인 클릭베이트 제목은 금지합니다.
-7. seo_title_en은 60자 내외, seo_description_en은 140~160자 내외로 작성해주세요.
-8. JSON만 반환해주세요.
-9. html, body 태그는 넣지 마세요.
+7. JSON만 반환해주세요.
+8. html, body 태그는 넣지 마세요.
+
+## SEO 키워드 필수 포함 규칙 (primary_keyword가 있을 때 반드시 준수)
+- primary_keyword를 title_en에 자연스럽게 포함하세요.
+- primary_keyword를 excerpt_en에 자연스럽게 포함하세요.
+- primary_keyword를 body_en 본문에 자연스럽게 여러 번 포함하세요.
+- primary_keyword를 seo_title_en에 자연스럽게 포함하세요.
+- primary_keyword의 핵심 단어를 slug에 포함하세요 (slug는 영문 소문자+하이픈 형식).
+
+## SEO 메타 길이 규칙
+- seo_title_en: 정확히 50~60자 사이로 작성하세요 (공백 포함).
+- seo_description_en: 정확히 140~160자 사이로 작성하세요 (공백 포함).
+- slug: primary_keyword 기반으로 URL-safe 영문 소문자+하이픈 형식으로 작성하세요.
 
 ## 영어 공개본 작성 규칙
 - 한국어 원문의 톤, 구성, 감정적 뉘앙스를 최대한 살려서 영어로 작성해주세요. 단순 직역이나 요약이 아니라, 원문을 읽었을 때 느끼는 분위기와 에너지를 영어 독자도 느낄 수 있어야 합니다.
 - 한국어 본문에 등장하는 한국어 단어, 예문, 슬랭 표현은 영어로 번역하지 말고 한국어 원문 그대로 표기하세요(예: "대박", "ㅋㅋㅋ", "아 씨발"). 필요하면 괄호 안에 짧은 영어 설명을 추가하세요.
+- 한국어 예문이 등장하면 반드시 한국어 원문을 그대로 유지하고 바로 옆에 영어 번역을 병기하세요. 예: "야 이거 레전드다 (Yo, this is legendary)" 또는 "이거 완전 억까잖아 (This is totally unfair/rigged)". 한국어 예문만 달랑 놓지 마세요.
 - 미국 문화나 영어권 독자에게 어색하거나 맞지 않는 비유/표현은 미국 문화에 맞게 자연스럽게 바꿔도 됩니다. 단, 한국어 슬랭 자체의 뜻이나 뉘앙스를 왜곡하면 안 됩니다.
 - 문장 구조와 표현을 다양하게 사용하세요. 같은 패턴의 문장이 반복되지 않도록 하고, 문단마다 다른 리듬과 길이를 써서 사람이 직접 쓴 것처럼 자연스럽게 작성하세요.
 - "In conclusion", "Let's dive in", "Without further ado" 같은 상투적인 AI 문구는 사용하지 마세요.
@@ -123,6 +136,7 @@ PROMPT;
         $titleKo = trim((string) ($context['title_ko'] ?? ''));
         $excerptKo = trim((string) ($context['excerpt_ko'] ?? ''));
         $bodyKo = trim((string) ($context['body_ko'] ?? ''));
+        $currentSlug = trim((string) ($context['slug'] ?? ''));
 
         return <<<PROMPT
 당신은 한국어 원본을 영어 SEO 콘텐츠로 현지화하는 전문 편집자입니다.
@@ -133,14 +147,28 @@ PROMPT;
 - category_name: {$categoryName}
 - tag_names: {$tagNames}
 - primary_keyword: {$primaryKeyword}
+- current_slug: {$currentSlug}
 - title_ko: {$titleKo}
 - excerpt_ko: {$excerptKo}
 - body_ko:
 {$bodyKo}
 
+## SEO 키워드 필수 포함 규칙 (primary_keyword가 있을 때 반드시 준수)
+- primary_keyword를 title_en에 자연스럽게 포함하세요.
+- primary_keyword를 excerpt_en에 자연스럽게 포함하세요.
+- primary_keyword를 body_en 본문에 자연스럽게 여러 번 포함하세요.
+- primary_keyword를 seo_title_en에 자연스럽게 포함하세요.
+- primary_keyword의 핵심 단어를 slug에 포함하세요 (slug는 영문 소문자+하이픈 형식).
+
+## SEO 메타 길이 규칙
+- seo_title_en: 정확히 50~60자 사이로 작성하세요 (공백 포함).
+- seo_description_en: 정확히 140~160자 사이로 작성하세요 (공백 포함).
+- slug: primary_keyword 기반으로 URL-safe 영문 소문자+하이픈 형식으로 작성하세요. current_slug가 있으면 이를 기반으로 개선하세요.
+
 ## 핵심 번역 원칙
 - 한국어 원문의 톤, 구성, 감정적 뉘앙스를 최대한 살려서 영어로 작성하세요. 원문의 분위기와 에너지가 영어 독자에게도 전달되어야 합니다.
 - 한국어 본문에 등장하는 한국어 단어, 예문, 슬랭 표현은 영어로 번역하지 말고 한국어 원문 그대로 표기하세요(예: "대박", "ㅋㅋㅋ", "아 씨발"). 필요하면 괄호 안에 짧은 영어 설명을 추가하세요.
+- 한국어 예문이 등장하면 반드시 한국어 원문을 그대로 유지하고 바로 옆에 영어 번역을 병기하세요. 예: "야 이거 레전드다 (Yo, this is legendary)" 또는 "이거 완전 억까잖아 (This is totally unfair/rigged)". 한국어 예문만 달랑 놓지 마세요.
 - 미국 문화나 영어권 독자에게 어색하거나 맞지 않는 비유/표현은 미국 문화에 맞게 자연스럽게 바꿔도 됩니다. 단, 한국어 슬랭 자체의 뜻이나 뉘앙스를 왜곡하면 안 됩니다.
 
 ## 글쓰기 스타일 규칙
@@ -151,9 +179,8 @@ PROMPT;
 ## 포맷 규칙
 1. excerpt_en은 2~3문장 요약으로 작성해주세요.
 2. body_en은 body_ko의 HTML 구조를 최대한 유지하면서 영어로 작성해주세요.
-3. seo_title_en은 60자 내외, seo_description_en은 140~160자 내외로 작성해주세요.
-4. body_en은 HTML fragment만 반환하고 html/body 태그는 넣지 마세요.
-5. JSON만 반환해주세요.
+3. body_en은 HTML fragment만 반환하고 html/body 태그는 넣지 마세요.
+4. JSON만 반환해주세요.
 PROMPT;
     }
 
@@ -171,6 +198,7 @@ PROMPT;
                 'title_en' => ['type' => 'STRING'],
                 'excerpt_en' => ['type' => 'STRING'],
                 'body_en' => ['type' => 'STRING'],
+                'slug' => ['type' => 'STRING'],
                 'seo_title_en' => ['type' => 'STRING'],
                 'seo_description_en' => ['type' => 'STRING'],
             ],
@@ -181,6 +209,7 @@ PROMPT;
                 'title_en',
                 'excerpt_en',
                 'body_en',
+                'slug',
                 'seo_title_en',
                 'seo_description_en',
             ],
@@ -198,6 +227,7 @@ PROMPT;
                 'title_en' => ['type' => 'STRING'],
                 'excerpt_en' => ['type' => 'STRING'],
                 'body_en' => ['type' => 'STRING'],
+                'slug' => ['type' => 'STRING'],
                 'seo_title_en' => ['type' => 'STRING'],
                 'seo_description_en' => ['type' => 'STRING'],
             ],
@@ -205,6 +235,7 @@ PROMPT;
                 'title_en',
                 'excerpt_en',
                 'body_en',
+                'slug',
                 'seo_title_en',
                 'seo_description_en',
             ],
@@ -224,6 +255,7 @@ PROMPT;
             'title_en' => trim((string) ($data['title_en'] ?? '')),
             'excerpt_en' => trim((string) ($data['excerpt_en'] ?? '')),
             'body_en' => trim((string) ($data['body_en'] ?? '')),
+            'slug' => $this->normalizeSlug($data['slug'] ?? ''),
             'seo_title_en' => trim((string) ($data['seo_title_en'] ?? '')),
             'seo_description_en' => trim((string) ($data['seo_description_en'] ?? '')),
         ];
@@ -239,8 +271,14 @@ PROMPT;
             'title_en' => trim((string) ($data['title_en'] ?? '')),
             'excerpt_en' => trim((string) ($data['excerpt_en'] ?? '')),
             'body_en' => trim((string) ($data['body_en'] ?? '')),
+            'slug' => $this->normalizeSlug($data['slug'] ?? ''),
             'seo_title_en' => trim((string) ($data['seo_title_en'] ?? '')),
             'seo_description_en' => trim((string) ($data['seo_description_en'] ?? '')),
         ];
+    }
+
+    private function normalizeSlug(mixed $value): string
+    {
+        return Str::slug(trim((string) $value));
     }
 }

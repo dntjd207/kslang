@@ -22,6 +22,7 @@ class TranslateBlogPostRequest extends FormRequest
             'tag_names' => ['nullable', 'string', 'max:1000'],
             'search_intent' => ['nullable', 'string', 'in:'.implode(',', BlogPost::SEARCH_INTENTS)],
             'primary_keyword' => ['nullable', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255'],
             'title_ko' => ['required', 'string', 'max:255'],
             'excerpt_ko' => ['nullable', 'string', 'max:1000'],
             'body_ko' => ['required', 'string', 'max:2000000'],
