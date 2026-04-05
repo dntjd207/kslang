@@ -217,28 +217,6 @@
                 @endif
 
                 <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xl font-bold text-gray-900">Article snapshot</h2>
-                    <dl class="mt-4 space-y-4 text-sm">
-                        <div class="flex items-start justify-between gap-4">
-                            <dt class="text-gray-500">Published</dt>
-                            <dd class="text-right font-medium text-gray-900">{{ $blogPost->published_at?->format('F j, Y') ?? '-' }}</dd>
-                        </div>
-                        <div class="flex items-start justify-between gap-4">
-                            <dt class="text-gray-500">Read time</dt>
-                            <dd class="text-right font-medium text-gray-900">{{ $blogPost->reading_time_minutes }} min</dd>
-                        </div>
-                        <div class="flex items-start justify-between gap-4">
-                            <dt class="text-gray-500">Category</dt>
-                            <dd class="text-right font-medium text-gray-900">{{ $blogPost->category_name ?: '-' }}</dd>
-                        </div>
-                        <div class="flex items-start justify-between gap-4">
-                            <dt class="text-gray-500">Related slang</dt>
-                            <dd class="text-right font-medium text-gray-900">{{ $blogPost->slangs->count() }}</dd>
-                        </div>
-                    </dl>
-                </div>
-
-                <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
                     <p class="text-sm font-semibold uppercase tracking-[0.2em] text-fuchsia-600">Explore More</p>
                     <h2 class="mt-3 text-xl font-bold text-gray-900">Related slang pages</h2>
                     @if ($blogPost->slangs->isEmpty())

@@ -18,7 +18,6 @@ class BlogController extends Controller
 
         $blogPosts = BlogPost::query()
             ->published()
-            ->with('slangs')
             ->when($category !== null, fn (Builder $query) => $query->where('category_name', $category))
             ->when($tag !== null, fn (Builder $query) => $query->where('tag_names', 'like', '%'.$tag.'%'))
             ->orderByDesc('published_at')
