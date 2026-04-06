@@ -504,3 +504,22 @@
 - CTA 집계 화면은 별도 집계 테이블/cron 없이 `cta_clicks` 테이블을 직접 집계하여 구현 단순성을 유지하고, 데이터 규모가 커지면 이후 집계 테이블로 전환
 - 블로그 TOC는 서버 사이드에서 HTML을 regex로 파싱하여 JS 의존성 없이 구현하고, 기존에 id 속성이 있는 heading은 건드리지 않도록 보호
 - FAQ AI 생성은 다른 섹션 재생성과 달리 생성 즉시 DB에 저장하는 방식으로 구현 — FAQ는 폼 인라인 필드가 아닌 JSON 덩어리이므로 폼 반영/검토 패턴이 불필요
+
+---
+
+## 2026-04-06
+
+### 작업 내용
+- SEO 자동 생성 및 공개 페이지 SEO 코드 최적화
+  - AI 자동 콘텐츠 생성(`fillSlang`) 시 기본 콘텐츠와 함께 SEO 필드(`seo_title_en`, `seo_description_en`, `seo_keywords_en`, `public_title_en`, `public_summary_en`)를 자동 생성하도록 프롬프트/스키마 확장
+  - `seo_keywords_en` 컬럼 추가 마이그레이션 생성 및 실행, 모델/서비스/FormRequest/관리자 폼 전체 반영
+  - `generateSeoFields` 프롬프트를 Google/Bing SEO 베스트 프랙티스 기반으로 전면 강화 (title 길이, description CTA, keywords long-tail 등)
+  - 관리자 폼에 SEO title/description 글자 수 실시간 카운터 추가
+  - 공개 슬랭 상세 페이지에 `og:site_name`, `og:locale`, `og:image:width/height/alt`, `article:published_time/modified_time`, `meta keywords`, `robots max-snippet/max-image-preview` 메타 추가
+  - DefinedTerm JSON-LD schema에 `datePublished`, `dateModified` 속성 추가
+  - 공개 슬랭 목록 페이지 meta description/keywords/OG 메타 개선
+
+### 주요 결정 사항
+- AI 자동 생성에서 SEO 필드를 함께 생성하여 승인 즉시 SEO 최적화된 공개 페이지가 노출되도록 설계
+- `meta keywords`는 Google이 공식적으로 무시하지만 Bing은 참고할 수 있으므로 포함
+- SEO 프롬프트에서 브랜드명은 title 태그에 자동 추가되므로 AI 생성에서는 제외하도록 명시

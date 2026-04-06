@@ -68,13 +68,16 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `database/migrations/2026_04_01_093109_add_new_status_fields_to_slangs_table.php`
 - `database/migrations/2026_04_01_203734_add_public_seo_fields_to_slangs_table.php`
 - `database/migrations/2026_04_02_102639_add_faq_items_to_slangs_table.php`
+- `database/migrations/2026_04_06_094111_add_seo_keywords_to_slangs_table.php`
 
 ## 핵심 로직
 
 - **SlangService**: DB 트랜잭션으로 슬랭 + 카테고리 sync + 예문 동기화 + 음성 파일 처리를 원자적으로 실행
 - **기본 정보 입력**: 사용 상황은 한글(`usage_context`)과 영어 번역(`english_usage_context`)을 함께 관리
-- **공개 SEO 필드**: `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`을 통해 공개 슬랭 상세 페이지 URL/메타를 관리
-- **SEO 필드 AI 생성**: 수정 화면의 `SEO 필드 AI 생성` 버튼으로 현재 폼 기준 `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`을 생성하며, 결과는 즉시 DB 저장하지 않고 폼에만 반영
+- **공개 SEO 필드**: `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`, `seo_keywords_en`을 통해 공개 슬랭 상세 페이지 URL/메타를 관리
+- **SEO 필드 AI 생성**: 수정 화면의 `SEO 필드 AI 생성` 버튼으로 현재 폼 기준 `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`, `seo_keywords_en`을 생성하며, 결과는 즉시 DB 저장하지 않고 폼에만 반영
+- **SEO 자동 생성**: AI 자동 콘텐츠 생성(`fillSlang`) 시 기본 콘텐츠와 함께 SEO 필드(seo_title_en, seo_description_en, seo_keywords_en, public_title_en, public_summary_en)도 자동 생성
+- **SEO 코드 최적화**: 공개 슬랭 상세 페이지에 `og:site_name`, `og:locale`, `og:image:width/height/alt`, `article:published_time/modified_time`, `meta keywords`, `robots max-snippet/max-image-preview`, DefinedTerm schema `datePublished/dateModified` 적용
 - **FAQ AI 생성**: 슬랭 수정 화면에서 `FAQ AI 생성` 버튼으로 Gemini 기반 영문 FAQ 5개를 생성하고 `faq_items` JSON에 즉시 저장. 공개 슬랭 상세에서 `faq_items`가 있으면 AI FAQ를 표시하고, 없으면 기존 하드코딩 fallback 유지
 - **구조화 데이터 강화**: 공개 슬랭 상세는 `DefinedTerm`, `BreadcrumbList`, `FAQPage` JSON-LD를 출력하고, 화면에도 Quick facts/FAQ를 함께 노출해 schema와 실제 콘텐츠가 일치하도록 구성. FAQPage schema는 `faq_items` 우선 사용
 - **AI 참고 설명**: 상세 등록 시 `ai_generation_hint`에 관리자 설명을 저장하고, AI 자동 생성/재생성 시 최신 유행어 의미 해석의 참고 정보로 사용
@@ -124,3 +127,4 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-04-02 | 공개 슬랭 상세 디자인/FAQ/schema 강화 | quick facts, FAQ 표시, CTA polish, JSON-LD 보강 |
 | 2026-04-02 | 공개 슬랭 허브 상단 앱 CTA 추가 | 공식 Play Store 링크 유도 강화 |
 | 2026-04-02 | FAQ AI 생성 기능 추가 | `faq_items` JSON 컬럼, Gemini FAQ 생성, 관리자 생성 버튼, 공개 페이지 AI FAQ 우선 사용 |
+| 2026-04-06 | SEO 자동 생성 및 코드 최적화 | AI 생성 시 SEO 필드 자동 포함, `seo_keywords_en` 컬럼 추가, 프롬프트 Google/Bing 최적화, 공개 페이지 OG/schema 메타 강화 |

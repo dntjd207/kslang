@@ -268,7 +268,7 @@ PROMPT;
             : '(카테고리 없음)';
 
         $prompt = <<<PROMPT
-당신은 영어권 검색 유입을 노리는 Korean slang SEO 편집자입니다.
+당신은 Google과 Bing 검색 최적화에 전문화된 Korean slang SEO 편집자입니다.
 아래 슬랭 정보를 바탕으로 공개 슬랭 상세 페이지용 SEO 필드를 작성해주세요.
 
 ## 대상 단어
@@ -293,14 +293,49 @@ PROMPT;
 - current seo_title_en: {$slangContext['seo_title_en']}
 - current seo_description_en: {$slangContext['seo_description_en']}
 
-## 작성 규칙
-1. public_slug는 영어 소문자/숫자/하이픈만 사용한 짧은 slug로 작성해주세요.
-2. public_title_en은 영어권 사용자가 검색할 만한 자연스러운 상세 페이지 제목으로 작성해주세요.
-3. public_summary_en은 2~3문장 요약으로 작성해주세요.
-4. seo_title_en은 60자 내외로 작성해주세요.
-5. seo_description_en은 140~160자 내외로 작성해주세요.
-6. 과장된 clickbait는 금지하고, 실제 의미/뉘앙스/주의점을 자연스럽게 반영해주세요.
-7. JSON만 반환해주세요.
+## URL 구조
+- 페이지 URL 패턴: /korean-slang/{public_slug}
+- 사이트명: kslang
+- title 태그 패턴: {seo_title_en} | kslang
+
+## Google/Bing SEO 작성 규칙
+
+### public_slug
+- 영어 소문자, 숫자, 하이픈만 사용
+- 발음 기반의 짧고 명확한 slug (예: "neu-joh", "gaesaekki")
+
+### public_title_en (H1 태그용)
+- "{한국어 단어} meaning in Korean" 패턴을 기본으로 사용
+- 검색 의도(search intent)를 반영하되, 과장하지 않기
+
+### public_summary_en (페이지 상단 요약)
+- 2~3문장으로 단어의 핵심 의미와 사용 맥락을 요약
+- 첫 문장에 핵심 키워드(한국어 단어, meaning, Korean slang 등)를 자연스럽게 포함
+
+### seo_title_en (title 태그용 — Google/Bing SERP에 표시)
+- 50~60자 이내 (브랜드명 " | kslang"이 뒤에 자동 추가되므로 본문만 작성)
+- 핵심 키워드를 제목 앞부분에 배치
+- 검색 의도를 반영하는 자연스러운 제목
+- 패턴 예시: "{한국어 단어} ({발음}) – Meaning & Usage in Korean"
+
+### seo_description_en (meta description — Google/Bing SERP에 표시)
+- 140~160자 이내
+- 첫 문장에 핵심 의미를 간결하게 전달
+- 강도(intensity), 사용 빈도, 사용 맥락 등 차별화 정보를 포함
+- "Learn", "Discover" 같은 CTA 워드를 자연스럽게 포함
+- 과장된 clickbait 금지, 정보성과 신뢰성 유지
+
+### seo_keywords_en (검색 키워드)
+- 쉼표로 구분된 5~8개의 영어 키워드
+- 한국어 원문, 발음, "Korean slang", "meaning" 등 핵심 검색어 포함
+- long-tail 키워드 1~2개 포함 (예: "what does {단어} mean in Korean")
+
+## 금지 사항
+- 과장된 표현, clickbait, 감탄사 남발 금지
+- 브랜드명(kslang) 포함 금지 (자동 추가됨)
+- seo_title_en에 파이프(|) 문자 사용 금지
+
+JSON만 반환해주세요.
 PROMPT;
 
         $data = $this->generateStructuredData($prompt, [
@@ -312,19 +347,23 @@ PROMPT;
                 ],
                 'public_title_en' => [
                     'type' => 'STRING',
-                    'description' => 'Public English title for the slang detail page',
+                    'description' => 'Public page H1 title in English',
                 ],
                 'public_summary_en' => [
                     'type' => 'STRING',
-                    'description' => '2-3 sentence public English summary for the slang page',
+                    'description' => 'Public page summary (2-3 sentences, English)',
                 ],
                 'seo_title_en' => [
                     'type' => 'STRING',
-                    'description' => 'SEO title around 60 characters',
+                    'description' => 'SEO title for SERP (50-60 characters, English, no brand name)',
                 ],
                 'seo_description_en' => [
                     'type' => 'STRING',
-                    'description' => 'SEO meta description around 140-160 characters',
+                    'description' => 'SEO meta description for SERP (140-160 characters, English)',
+                ],
+                'seo_keywords_en' => [
+                    'type' => 'STRING',
+                    'description' => 'Comma-separated SEO keywords (5-8 keywords, English)',
                 ],
             ],
             'required' => [
@@ -333,6 +372,7 @@ PROMPT;
                 'public_summary_en',
                 'seo_title_en',
                 'seo_description_en',
+                'seo_keywords_en',
             ],
         ]);
 
@@ -342,6 +382,7 @@ PROMPT;
             'public_summary_en' => trim((string) ($data['public_summary_en'] ?? '')),
             'seo_title_en' => trim((string) ($data['seo_title_en'] ?? '')),
             'seo_description_en' => trim((string) ($data['seo_description_en'] ?? '')),
+            'seo_keywords_en' => trim((string) ($data['seo_keywords_en'] ?? '')),
         ];
     }
 
@@ -454,6 +495,10 @@ PROMPT;
 7. english_usage_context: usage_context의 자연스러운 영어 번역 (영어, 2~3문장)
 8. examples: 사용 예문 2~4개 (각각 korean_example과 english_example)
 9. suggested_categories: 현재 등록된 카테고리 중 적합한 것을 선택 (여러 개 가능)
+10. seo_title_en: Google/Bing 검색 결과에 표시할 SEO 타이틀 (영어, 50~60자). "{한국어 단어} meaning in Korean" 패턴을 기본으로 하되, 검색 의도에 맞는 자연스러운 제목으로 작성해주세요. 브랜드명은 포함하지 마세요.
+11. seo_description_en: Google/Bing 검색 결과에 표시할 메타 설명 (영어, 140~160자). 단어의 핵심 의미, 사용 맥락, 강도를 포함하여 클릭을 유도하는 자연스러운 문장으로 작성해주세요. "Learn", "Discover" 같은 CTA 워드를 자연스럽게 포함해주세요.
+12. public_title_en: 공개 상세 페이지의 H1 제목 (영어). "{한국어 단어} meaning in Korean" 또는 "What does {한국어 단어} mean in Korean?" 패턴으로 작성해주세요.
+13. public_summary_en: 공개 상세 페이지 상단 요약 (영어, 2~3문장). english_description보다 간결하면서 페이지 방문 가치를 전달해주세요.
 
 ## 현재 등록된 카테고리
 {$categoryList}
@@ -526,6 +571,26 @@ PROMPT;
                         'type' => 'STRING',
                     ],
                 ],
+                'seo_title_en' => [
+                    'type' => 'STRING',
+                    'description' => 'SEO title for Google/Bing search results (50-60 characters, English)',
+                ],
+                'seo_description_en' => [
+                    'type' => 'STRING',
+                    'description' => 'SEO meta description for search results (140-160 characters, English)',
+                ],
+                'public_title_en' => [
+                    'type' => 'STRING',
+                    'description' => 'Public page H1 title in English',
+                ],
+                'public_summary_en' => [
+                    'type' => 'STRING',
+                    'description' => 'Public page summary in English (2-3 sentences)',
+                ],
+                'seo_keywords_en' => [
+                    'type' => 'STRING',
+                    'description' => 'Comma-separated SEO keywords (5-8 keywords, English)',
+                ],
             ],
             'required' => [
                 'pronunciation',
@@ -536,6 +601,11 @@ PROMPT;
                 'usage_context',
                 'english_usage_context',
                 'examples',
+                'seo_title_en',
+                'seo_description_en',
+                'public_title_en',
+                'public_summary_en',
+                'seo_keywords_en',
             ],
         ];
     }
@@ -573,6 +643,7 @@ PROMPT;
      *     public_summary_en: string,
      *     seo_title_en: string,
      *     seo_description_en: string,
+     *     seo_keywords_en: string,
      *     category_names: list<string>,
      *     examples: Collection<int, array{korean_example: string, english_example: string}>
      * }
@@ -607,6 +678,7 @@ PROMPT;
             'public_summary_en' => $this->resolveContextValue($context, 'public_summary_en', $slang->public_summary_en),
             'seo_title_en' => $this->resolveContextValue($context, 'seo_title_en', $slang->seo_title_en),
             'seo_description_en' => $this->resolveContextValue($context, 'seo_description_en', $slang->seo_description_en),
+            'seo_keywords_en' => $this->resolveContextValue($context, 'seo_keywords_en', $slang->seo_keywords_en),
             'category_names' => collect($context['category_names'] ?? $slang->categories()->pluck('name')->all())
                 ->map(fn ($name) => trim((string) $name))
                 ->filter(fn ($name) => $name !== '')
@@ -684,6 +756,11 @@ PROMPT;
                 'usage_context' => $data['usage_context'] ?? '',
                 'english_usage_context' => $data['english_usage_context'] ?? '',
                 'public_slug' => $this->resolvePublicSlug($slang, (string) ($data['pronunciation'] ?? '')),
+                'seo_title_en' => trim((string) ($data['seo_title_en'] ?? '')),
+                'seo_description_en' => trim((string) ($data['seo_description_en'] ?? '')),
+                'seo_keywords_en' => trim((string) ($data['seo_keywords_en'] ?? '')),
+                'public_title_en' => trim((string) ($data['public_title_en'] ?? '')),
+                'public_summary_en' => trim((string) ($data['public_summary_en'] ?? '')),
                 'content_status' => Slang::STATUS_GENERATED,
                 'is_active' => false,
                 'is_new' => false,

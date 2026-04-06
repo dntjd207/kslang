@@ -26,6 +26,8 @@
         'description' => $slang->public_summary,
         'inDefinedTermSet' => route('slangs.public.index'),
         'url' => route('slangs.public.show', ['slang' => $slang->public_slug]),
+        'datePublished' => $slang->created_at->toIso8601String(),
+        'dateModified' => $slang->updated_at->toIso8601String(),
         'additionalProperty' => array_values(array_filter([
             [
                 $schemaTypeKey => 'PropertyValue',
@@ -56,12 +58,22 @@
 
 @section('meta')
     <meta name="description" content="{{ $slang->resolved_seo_description }}">
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+    @if ($slang->seo_keywords_en)
+        <meta name="keywords" content="{{ $slang->seo_keywords_en }}">
+    @endif
+    <meta property="og:site_name" content="kslang">
+    <meta property="og:locale" content="en_US">
     <meta property="og:title" content="{{ $slang->resolved_seo_title }}">
     <meta property="og:description" content="{{ $slang->resolved_seo_description }}">
     <meta property="og:type" content="article">
     <meta property="og:url" content="{{ route('slangs.public.show', ['slang' => $slang->public_slug]) }}">
     <meta property="og:image" content="{{ asset('images/og-cover.png') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{{ $slang->korean }} - Korean Slang Meaning">
+    <meta property="article:published_time" content="{{ $slang->created_at->toIso8601String() }}">
+    <meta property="article:modified_time" content="{{ $slang->updated_at->toIso8601String() }}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $slang->resolved_seo_title }}">
     <meta name="twitter:description" content="{{ $slang->resolved_seo_description }}">

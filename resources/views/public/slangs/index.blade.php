@@ -7,16 +7,21 @@
 @endsection
 
 @section('meta')
-    <meta name="description" content="Browse public Korean slang pages with English explanations, usage context, examples, and related blog articles.">
-    <meta name="robots" content="index, follow">
-    <meta property="og:title" content="Korean Slang Dictionary | kslang">
-    <meta property="og:description" content="Browse public Korean slang pages with English explanations and related blog articles.">
+    <meta name="description" content="Discover Korean slang words with English meanings, pronunciation guides, usage context, and real examples. Learn how Koreans actually talk.">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+    <meta name="keywords" content="Korean slang, Korean slang dictionary, Korean slang words, Korean slang meaning, learn Korean slang">
+    <meta property="og:site_name" content="kslang">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="Korean Slang Dictionary – Learn Real Korean Expressions">
+    <meta property="og:description" content="Discover Korean slang words with English meanings, pronunciation guides, usage context, and real examples.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ route('slangs.public.index') }}">
     <meta property="og:image" content="{{ asset('images/og-cover.png') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Korean Slang Dictionary | kslang">
-    <meta name="twitter:description" content="Browse public Korean slang pages with English explanations and related blog articles.">
+    <meta name="twitter:title" content="Korean Slang Dictionary – Learn Real Korean Expressions">
+    <meta name="twitter:description" content="Discover Korean slang words with English meanings, pronunciation guides, usage context, and real examples.">
     <meta name="twitter:image" content="{{ asset('images/og-cover.png') }}">
 @endsection
 

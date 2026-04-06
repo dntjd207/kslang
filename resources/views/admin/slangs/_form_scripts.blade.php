@@ -400,6 +400,7 @@ function getRegenerationPayload(section) {
         public_summary_en: document.getElementById('public_summary_en')?.value ?? '',
         seo_title_en: document.getElementById('seo_title_en')?.value ?? '',
         seo_description_en: document.getElementById('seo_description_en')?.value ?? '',
+        seo_keywords_en: document.getElementById('seo_keywords_en')?.value ?? '',
         category_names: collectSelectedCategoryNames(),
         examples: collectExamplesFromForm(),
     };
@@ -535,6 +536,8 @@ function applyRegeneratedSection(section, data) {
         document.getElementById('public_summary_en').value = data.public_summary_en ?? '';
         document.getElementById('seo_title_en').value = data.seo_title_en ?? '';
         document.getElementById('seo_description_en').value = data.seo_description_en ?? '';
+        document.getElementById('seo_keywords_en').value = data.seo_keywords_en ?? '';
+        updateSeoCounters();
         return;
     }
 
@@ -680,6 +683,31 @@ document.addEventListener('click', function (event) {
 
     handleGenerateExampleAudio(button, row);
 });
+
+function updateSeoCounters() {
+    const titleInput = document.getElementById('seo_title_en');
+    const descInput = document.getElementById('seo_description_en');
+    const titleCounter = document.getElementById('seo-title-counter');
+    const descCounter = document.getElementById('seo-desc-counter');
+
+    if (titleInput && titleCounter) {
+        const len = titleInput.value.length;
+        const color = len === 0 ? 'text-gray-400' : (len >= 50 && len <= 60 ? 'text-emerald-600' : (len > 60 ? 'text-red-500' : 'text-amber-500'));
+        titleCounter.className = `mt-1 text-xs ${color}`;
+        titleCounter.textContent = len > 0 ? `${len}/60자 (뒤에 " | kslang" 자동 추가)` : '';
+    }
+
+    if (descInput && descCounter) {
+        const len = descInput.value.length;
+        const color = len === 0 ? 'text-gray-400' : (len >= 140 && len <= 160 ? 'text-emerald-600' : (len > 160 ? 'text-red-500' : 'text-amber-500'));
+        descCounter.className = `mt-1 text-xs ${color}`;
+        descCounter.textContent = len > 0 ? `${len}/160자` : '';
+    }
+}
+
+document.getElementById('seo_title_en')?.addEventListener('input', updateSeoCounters);
+document.getElementById('seo_description_en')?.addEventListener('input', updateSeoCounters);
+updateSeoCounters();
 
 updateNoExamplesState();
 initExampleSortable();

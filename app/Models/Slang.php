@@ -43,6 +43,7 @@ class Slang extends Model
         'public_summary_en',
         'seo_title_en',
         'seo_description_en',
+        'seo_keywords_en',
         'faq_items',
     ];
 

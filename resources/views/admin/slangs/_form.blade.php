@@ -286,9 +286,10 @@
                             name="seo_title_en"
                             id="seo_title_en"
                             value="{{ old('seo_title_en', $isEdit ? $slang->seo_title_en : '') }}"
-                            placeholder="검색 결과에 표시할 제목"
+                            placeholder="검색 결과에 표시할 제목 (50~60자)"
                             class="w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 {{ $errors->has('seo_title_en') ? 'border-red-500' : 'border-gray-300' }}"
                         >
+                        <p class="mt-1 text-xs text-gray-400" id="seo-title-counter"></p>
                         @error('seo_title_en')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -302,13 +303,31 @@
                             name="seo_description_en"
                             id="seo_description_en"
                             rows="3"
-                            placeholder="검색 결과에 표시할 설명"
+                            placeholder="검색 결과에 표시할 설명 (140~160자)"
                             class="w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y {{ $errors->has('seo_description_en') ? 'border-red-500' : 'border-gray-300' }}"
                         >{{ old('seo_description_en', $isEdit ? $slang->seo_description_en : '') }}</textarea>
+                        <p class="mt-1 text-xs text-gray-400" id="seo-desc-counter"></p>
                         @error('seo_description_en')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
+                </div>
+
+                <div>
+                    <label for="seo_keywords_en" class="block text-sm font-medium text-gray-700 mb-1">
+                        SEO 키워드
+                    </label>
+                    <input
+                        type="text"
+                        name="seo_keywords_en"
+                        id="seo_keywords_en"
+                        value="{{ old('seo_keywords_en', $isEdit ? $slang->seo_keywords_en : '') }}"
+                        placeholder="쉼표로 구분된 영어 키워드 (예: Korean slang, meaning, pronunciation)"
+                        class="w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 {{ $errors->has('seo_keywords_en') ? 'border-red-500' : 'border-gray-300' }}"
+                    >
+                    @error('seo_keywords_en')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
         </x-common.card>
