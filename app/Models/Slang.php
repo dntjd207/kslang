@@ -204,6 +204,12 @@ class Slang extends Model
             return $publicTitle;
         }
 
+        $pronunciation = trim((string) $this->pronunciation);
+
+        if ($pronunciation !== '') {
+            return "{$this->korean} ({$pronunciation}) meaning in Korean";
+        }
+
         return "{$this->korean} meaning in Korean";
     }
 

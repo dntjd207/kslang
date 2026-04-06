@@ -523,3 +523,18 @@
 - AI 자동 생성에서 SEO 필드를 함께 생성하여 승인 즉시 SEO 최적화된 공개 페이지가 노출되도록 설계
 - `meta keywords`는 Google이 공식적으로 무시하지만 Bing은 참고할 수 있으므로 포함
 - SEO 프롬프트에서 브랜드명은 title 태그에 자동 추가되므로 AI 생성에서는 제외하도록 명시
+
+---
+
+### 작업 내용
+- SEO 패턴 통일 및 일괄 생성 커맨드 추가
+  - 모든 SEO 프롬프트(fillSlang, generateSeoFields, FAQ)에서 `{한글} ({발음})` 패턴을 공통 메서드(`buildSeoRulesSection`)로 추출하여 통일
+  - FAQ 프롬프트에도 질문/답변에 한글 원문+발음 포함 규칙 추가
+  - `Slang::getPublicTitleAttribute` fallback도 `{한글} ({발음}) meaning in Korean` 패턴으로 변경
+  - `slang:generate-seo` Artisan 커맨드 추가: 전체 활성 슬랭 SEO 순차 생성, 프로그레스바 실시간 진행 상황 표시
+  - `--all` (기존 SEO 재생성), `--id` (특정 단어만), `--delay` (API 호출 간격) 옵션 지원
+
+### 주요 결정 사항
+- `{한글} ({발음})` 패턴을 선택한 이유: Google에서 한글 검색과 로마자 검색 모두 매칭되고, SERP에서 시각적 차별화로 CTR 향상
+- SEO 규칙을 `buildSeoRulesSection()` 공통 메서드로 추출하여 프롬프트 간 일관성 보장 및 유지보수 용이
+- 일괄 생성 커맨드는 기본적으로 SEO가 비어있는 단어만 처리하고, `--all`로 전체 재생성 가능하게 설계

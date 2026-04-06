@@ -37,6 +37,7 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - `app/Services/SlangThreadContentService.php` — Gemini 기반 Thread 포맷 4종 생성 및 저장 서비스
 - `app/Services/AudioFileService.php` — 업로드/생성 mp3 저장·삭제·교체·URL 반환 서비스
 - `app/Console/Commands/ExpireNewSlangsCommand.php` — 승인 후 3일이 지난 신규 슬랭 표시 해제
+- `app/Console/Commands/GenerateSlangSeoCommand.php` — 전체 슬랭 SEO 필드 AI 일괄 생성 (진행 상황 표시)
 - `app/Services/SupertoneTtsService.php` — Supertone TTS 합성 서비스
 - `app/Http/Requests/Admin/StoreSlangRequest.php` — 생성 유효성 검증
 - `app/Http/Requests/Admin/UpdateSlangRequest.php` — 수정 유효성 검증
@@ -78,6 +79,8 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 - **SEO 필드 AI 생성**: 수정 화면의 `SEO 필드 AI 생성` 버튼으로 현재 폼 기준 `public_slug`, `public_title_en`, `public_summary_en`, `seo_title_en`, `seo_description_en`, `seo_keywords_en`을 생성하며, 결과는 즉시 DB 저장하지 않고 폼에만 반영
 - **SEO 자동 생성**: AI 자동 콘텐츠 생성(`fillSlang`) 시 기본 콘텐츠와 함께 SEO 필드(seo_title_en, seo_description_en, seo_keywords_en, public_title_en, public_summary_en)도 자동 생성
 - **SEO 코드 최적화**: 공개 슬랭 상세 페이지에 `og:site_name`, `og:locale`, `og:image:width/height/alt`, `article:published_time/modified_time`, `meta keywords`, `robots max-snippet/max-image-preview`, DefinedTerm schema `datePublished/dateModified` 적용
+- **SEO 표준 패턴**: 모든 SEO 프롬프트(fillSlang, generateSeoFields, FAQ)에서 `{한글} ({발음})` 패턴을 공통 메서드(`buildSeoRulesSection`)로 통일하여 Google 한글+로마자 이중 매칭 보장
+- **SEO 일괄 생성**: `slang:generate-seo` Artisan 커맨드로 전체 활성 슬랭의 SEO 필드를 순차적으로 AI 생성. `--all` 옵션으로 기존 SEO도 재생성 가능, `--id` 옵션으로 특정 슬랭만 처리 가능, 진행 상황을 실시간 프로그레스바로 표시
 - **FAQ AI 생성**: 슬랭 수정 화면에서 `FAQ AI 생성` 버튼으로 Gemini 기반 영문 FAQ 5개를 생성하고 `faq_items` JSON에 즉시 저장. 공개 슬랭 상세에서 `faq_items`가 있으면 AI FAQ를 표시하고, 없으면 기존 하드코딩 fallback 유지
 - **구조화 데이터 강화**: 공개 슬랭 상세는 `DefinedTerm`, `BreadcrumbList`, `FAQPage` JSON-LD를 출력하고, 화면에도 Quick facts/FAQ를 함께 노출해 schema와 실제 콘텐츠가 일치하도록 구성. FAQPage schema는 `faq_items` 우선 사용
 - **AI 참고 설명**: 상세 등록 시 `ai_generation_hint`에 관리자 설명을 저장하고, AI 자동 생성/재생성 시 최신 유행어 의미 해석의 참고 정보로 사용
@@ -128,3 +131,4 @@ kslang 서비스의 핵심 콘텐츠인 욕/슬랭 데이터를 등록·수정·
 | 2026-04-02 | 공개 슬랭 허브 상단 앱 CTA 추가 | 공식 Play Store 링크 유도 강화 |
 | 2026-04-02 | FAQ AI 생성 기능 추가 | `faq_items` JSON 컬럼, Gemini FAQ 생성, 관리자 생성 버튼, 공개 페이지 AI FAQ 우선 사용 |
 | 2026-04-06 | SEO 자동 생성 및 코드 최적화 | AI 생성 시 SEO 필드 자동 포함, `seo_keywords_en` 컬럼 추가, 프롬프트 Google/Bing 최적화, 공개 페이지 OG/schema 메타 강화 |
+| 2026-04-06 | SEO 패턴 통일 + 일괄 생성 커맨드 | `{한글} ({발음})` 패턴으로 모든 SEO 프롬프트 통일, `slang:generate-seo` 일괄 생성 커맨드 추가 |
