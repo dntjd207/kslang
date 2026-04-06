@@ -538,6 +538,7 @@ function applyRegeneratedSection(section, data) {
         document.getElementById('seo_description_en').value = data.seo_description_en ?? '';
         document.getElementById('seo_keywords_en').value = data.seo_keywords_en ?? '';
         updateSeoCounters();
+        updateSerpPreview();
         return;
     }
 
@@ -705,9 +706,92 @@ function updateSeoCounters() {
     }
 }
 
+function updateSerpPreview() {
+    const seoTitle = getInputValue('seo_title_en');
+    const seoDesc = getInputValue('seo_description_en');
+    const slug = getInputValue('public_slug');
+    const keywords = getInputValue('seo_keywords_en');
+    const korean = getInputValue('korean');
+    const publicTitle = getInputValue('public_title_en');
+
+    const displayTitle = seoTitle || publicTitle || (korean ? `${korean} meaning in Korean` : 'SEO 제목을 입력하세요');
+    const fullTitle = `${displayTitle} | kslang`;
+    const displayDesc = seoDesc || 'SEO 설명을 입력하세요. 검색 결과에 이 텍스트가 표시됩니다.';
+    const displayUrl = slug ? `https://kslang.com/korean-slang/${slug}` : 'https://kslang.com/korean-slang/...';
+
+    const titleDesktop = document.getElementById('serp-title-desktop');
+    const titleMobile = document.getElementById('serp-title-mobile');
+    const descDesktop = document.getElementById('serp-desc-desktop');
+    const descMobile = document.getElementById('serp-desc-mobile');
+    const urlDesktop = document.getElementById('serp-url-desktop');
+    const urlMobile = document.getElementById('serp-url-mobile');
+
+    if (titleDesktop) titleDesktop.textContent = fullTitle;
+    if (titleMobile) titleMobile.textContent = fullTitle;
+    if (descDesktop) descDesktop.textContent = displayDesc;
+    if (descMobile) descMobile.textContent = displayDesc;
+    if (urlDesktop) urlDesktop.textContent = displayUrl;
+    if (urlMobile) urlMobile.textContent = displayUrl;
+
+    updateSerpAnalysis(seoTitle, seoDesc, slug, keywords);
+}
+
+function updateSerpAnalysis(title, desc, slug, keywords) {
+    const titleLen = title.length;
+    const descLen = desc.length;
+    const fullTitleLen = title ? `${title} | kslang`.length : 0;
+
+    updateSerpCheckItem('serp-check-title', getSerpTitleStatus(titleLen, fullTitleLen));
+    updateSerpCheckItem('serp-check-desc', getSerpDescStatus(descLen));
+    updateSerpCheckItem('serp-check-slug', getSerpSlugStatus(slug));
+    updateSerpCheckItem('serp-check-keywords', getSerpKeywordsStatus(keywords));
+}
+
+function getSerpTitleStatus(len, fullLen) {
+    if (len === 0) return { icon: '⚪', text: 'SEO 제목을 입력하면 진단 결과가 표시됩니다.', color: 'text-gray-500' };
+    if (fullLen > 60) return { icon: '🔴', text: `SEO 제목이 너무 깁니다 (${fullLen}자, " | kslang" 포함). Google이 잘라낼 수 있습니다.`, color: 'text-red-600' };
+    if (len < 30) return { icon: '🟡', text: `SEO 제목이 짧습니다 (${len}자). 50~60자(브랜드 포함 기준)가 이상적입니다.`, color: 'text-amber-600' };
+    return { icon: '🟢', text: `SEO 제목 길이가 적절합니다 (${fullLen}자, " | kslang" 포함).`, color: 'text-emerald-700' };
+}
+
+function getSerpDescStatus(len) {
+    if (len === 0) return { icon: '⚪', text: 'SEO 설명을 입력하면 진단 결과가 표시됩니다.', color: 'text-gray-500' };
+    if (len > 160) return { icon: '🔴', text: `SEO 설명이 너무 깁니다 (${len}자). Google이 잘라낼 수 있습니다.`, color: 'text-red-600' };
+    if (len < 120) return { icon: '🟡', text: `SEO 설명이 짧습니다 (${len}자). 140~160자가 이상적입니다.`, color: 'text-amber-600' };
+    return { icon: '🟢', text: `SEO 설명 길이가 적절합니다 (${len}자).`, color: 'text-emerald-700' };
+}
+
+function getSerpSlugStatus(slug) {
+    if (!slug) return { icon: '⚪', text: '공개 슬러그를 입력하면 진단 결과가 표시됩니다.', color: 'text-gray-500' };
+    if (slug.length > 50) return { icon: '🟡', text: `슬러그가 깁니다 (${slug.length}자). 짧을수록 SEO에 유리합니다.`, color: 'text-amber-600' };
+    if (/[A-Z]/.test(slug)) return { icon: '🔴', text: '슬러그에 대문자가 포함되어 있습니다. 소문자만 사용해주세요.', color: 'text-red-600' };
+    if (/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return { icon: '🟢', text: `슬러그 형식이 적절합니다 (${slug.length}자).`, color: 'text-emerald-700' };
+    return { icon: '🟡', text: '슬러그에 허용되지 않는 문자가 있을 수 있습니다.', color: 'text-amber-600' };
+}
+
+function getSerpKeywordsStatus(keywords) {
+    if (!keywords) return { icon: '⚪', text: 'SEO 키워드를 입력하면 진단 결과가 표시됩니다.', color: 'text-gray-500' };
+    const count = keywords.split(',').map(k => k.trim()).filter(k => k).length;
+    if (count < 3) return { icon: '🟡', text: `키워드가 ${count}개입니다. 5~8개가 이상적입니다.`, color: 'text-amber-600' };
+    if (count > 10) return { icon: '🟡', text: `키워드가 ${count}개로 많습니다. 5~8개가 이상적입니다.`, color: 'text-amber-600' };
+    return { icon: '🟢', text: `키워드 ${count}개 — 적절합니다.`, color: 'text-emerald-700' };
+}
+
+function updateSerpCheckItem(elementId, status) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.innerHTML = `<span class="mt-0.5 shrink-0">${status.icon}</span><span class="${status.color}">${escapeHtml(status.text)}</span>`;
+}
+
+const serpInputIds = ['seo_title_en', 'seo_description_en', 'public_slug', 'seo_keywords_en', 'korean', 'public_title_en'];
+serpInputIds.forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updateSerpPreview);
+});
+
 document.getElementById('seo_title_en')?.addEventListener('input', updateSeoCounters);
 document.getElementById('seo_description_en')?.addEventListener('input', updateSeoCounters);
 updateSeoCounters();
+updateSerpPreview();
 
 updateNoExamplesState();
 initExampleSortable();
