@@ -38,12 +38,13 @@ class GeminiService
         string $prompt,
         ?array $responseSchema = null,
         string $thinkingLevel = 'HIGH',
-        ?string $model = null
+        ?string $model = null,
+        int $timeout = 120
     ): GeminiResponse {
         $payload = $this->buildPayload($prompt, $responseSchema, $thinkingLevel);
         $resolvedModel = $model ?? $this->model;
 
-        $response = Http::timeout(120)
+        $response = Http::timeout($timeout)
             ->withQueryParameters(['key' => $this->apiKey])
             ->post("{$this->baseUrl}/models/{$resolvedModel}:generateContent", $payload);
 

@@ -362,7 +362,7 @@ PROMPT;
                 'seo_description_en',
                 'seo_keywords_en',
             ],
-        ]);
+        ], 300);
 
         return [
             'public_slug' => Str::slug((string) ($data['public_slug'] ?? '')) ?: $this->resolvePublicSlug($slang, $slangContext['pronunciation']),
@@ -603,9 +603,9 @@ PROMPT;
      * @param  array<string, mixed>  $responseSchema
      * @return array<string, mixed>
      */
-    private function generateStructuredData(string $prompt, array $responseSchema): array
+    private function generateStructuredData(string $prompt, array $responseSchema, int $timeout = 120): array
     {
-        $response = $this->geminiService->generate($prompt, $responseSchema, 'MEDIUM');
+        $response = $this->geminiService->generate($prompt, $responseSchema, 'MEDIUM', null, $timeout);
         $data = $response->json();
 
         if (! $data) {

@@ -7,7 +7,6 @@ use App\Services\SlangAutoFillService;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class GenerateSlangSeoCommand extends Command
@@ -18,6 +17,9 @@ class GenerateSlangSeoCommand extends Command
         {--delay=2 : API 호출 사이 대기 시간(초)}';
 
     protected $description = '활성 슬랭의 SEO 필드(title, description, keywords, summary)를 AI로 일괄 생성';
+
+    /** @var list<array{korean: string, id: int, error: string}> */
+    private array $failures = [];
 
     public function handle(SlangAutoFillService $autoFillService): int
     {
@@ -70,7 +72,11 @@ class GenerateSlangSeoCommand extends Command
             } catch (Throwable $e) {
                 $failed++;
                 $bar->setMessage((string) $failed, 'failed');
-                $this->logFailure($slang, $e);
+                $this->failures[] = [
+                    'korean' => $slang->korean,
+                    'id' => $slang->id,
+                    'error' => mb_substr($e->getMessage(), 0, 120),
+                ];
             }
 
             $bar->advance();
@@ -94,8 +100,17 @@ class GenerateSlangSeoCommand extends Command
             ]
         );
 
-        if ($failed > 0) {
-            $this->warn("{$failed}건 실패 — 로그를 확인해주세요.");
+        if ($this->failures !== []) {
+            $this->newLine();
+            $this->error('실패 목록:');
+            $this->table(
+                ['단어', 'ID', '에러'],
+                array_map(fn (array $f) => [$f['korean'], $f['id'], $f['error']], $this->failures)
+            );
+            $this->newLine();
+            $this->warn('실패한 단어는 --id 옵션으로 개별 재시도할 수 있습니다:');
+            $idArgs = implode(' ', array_map(fn (array $f) => "--id={$f['id']}", $this->failures));
+            $this->line("  php artisan slang:generate-seo {$idArgs}");
         }
 
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
@@ -135,12 +150,5 @@ class GenerateSlangSeoCommand extends Command
         return trim((string) $slang->seo_title_en) === ''
             || trim((string) $slang->seo_description_en) === ''
             || trim((string) $slang->seo_keywords_en) === '';
-    }
-
-    private function logFailure(Slang $slang, Throwable $e): void
-    {
-        Log::error("SlangSeoGeneration 실패: {$slang->korean} (ID: {$slang->id})", [
-            'error' => $e->getMessage(),
-        ]);
     }
 }
