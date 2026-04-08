@@ -12,8 +12,6 @@
 @endsection
 
 @php
-    $faqItems = !empty($slang->faq_items) ? $slang->faq_items : [];
-
     $definedTermSchema = [
         $schemaContextKey => 'https://schema.org',
         $schemaTypeKey => 'DefinedTerm',
@@ -109,25 +107,6 @@
         ],
     ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
     {!! '</script>' !!}
-
-    @if (!empty($faqItems))
-        {!! '<script type="application/ld+json">' !!}
-        {!! json_encode([
-            $schemaContextKey => 'https://schema.org',
-            $schemaTypeKey => 'FAQPage',
-            'mainEntity' => collect($faqItems)->map(function (array $item) use ($schemaTypeKey): array {
-                return [
-                    $schemaTypeKey => 'Question',
-                    'name' => $item['question'],
-                    'acceptedAnswer' => [
-                        $schemaTypeKey => 'Answer',
-                        'text' => $item['answer'],
-                    ],
-                ];
-            })->all(),
-        ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
-        {!! '</script>' !!}
-    @endif
 @endsection
 
 @section('content')
@@ -337,19 +316,6 @@
                     @endif
                 </div>
 
-                @if (!empty($faqItems))
-                    <div class="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-                        <h2 class="text-2xl font-bold text-gray-900">FAQ</h2>
-                        <div class="mt-6 space-y-4">
-                            @foreach ($faqItems as $faqItem)
-                                <div class="rounded-2xl border border-gray-200 p-5">
-                                    <h3 class="text-lg font-semibold text-gray-900">{{ $faqItem['question'] }}</h3>
-                                    <p class="mt-2 text-sm leading-7 text-gray-600">{{ $faqItem['answer'] }}</p>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
             </div>
 
             <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">

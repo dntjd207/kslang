@@ -542,66 +542,7 @@ function applyRegeneratedSection(section, data) {
         return;
     }
 
-    if (section === 'faq') {
-        renderFaqItems(data.faq_items ?? []);
-    }
 }
-
-function renderFaqItems(items) {
-    const container = document.getElementById('faq-container');
-
-    if (!container) {
-        return;
-    }
-
-    if (!Array.isArray(items) || items.length === 0) {
-        container.innerHTML = '<div class="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-400">AI가 FAQ를 생성하지 못했습니다.</div>';
-        return;
-    }
-
-    container.innerHTML = items.map((item) => `
-        <div class="rounded-xl border border-gray-200 p-4 mb-3">
-            <p class="text-sm font-semibold text-gray-900">Q. ${item.question ?? ''}</p>
-            <p class="mt-2 text-sm leading-6 text-gray-600">${item.answer ?? ''}</p>
-        </div>
-    `).join('');
-}
-
-document.getElementById('btn-generate-faq')?.addEventListener('click', async function () {
-    const slangId = getSlangId();
-
-    if (!slangId) {
-        showFormToast('저장된 슬랭에서만 FAQ 생성을 사용할 수 있습니다.', 'error');
-        return;
-    }
-
-    setButtonLoading(this, true);
-
-    try {
-        const response = await fetch(`/admin/slangs/${slangId}/regenerate-section`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': getCsrfToken(),
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(getRegenerationPayload('faq')),
-        });
-
-        const result = await response.json().catch(() => null);
-
-        if (!response.ok || !result?.success) {
-            throw new Error(result?.message ?? 'FAQ 생성에 실패했습니다.');
-        }
-
-        renderFaqItems(result.data?.faq_items ?? []);
-        showFormToast(result.message ?? 'FAQ가 생성되었습니다.');
-    } catch (error) {
-        showFormToast(error.message ?? 'FAQ 생성에 실패했습니다.', 'error');
-    } finally {
-        setButtonLoading(this, false);
-    }
-});
 
 document.querySelector('[data-copy-card-news]')?.addEventListener('click', async function () {
     try {

@@ -13,4 +13,4 @@
 | F-010 앱 API | 안드로이드 앱용 REST API 10개 엔드포인트 + 관리자용 API Playground(실시간 요청 테스트), X-API-Key 인증, API Resource 활용, 신규 단어 우선 노출(`is_new`) | `docs/app-api/SPECS.md` |
 | F-011 AI 자동 콘텐츠 생성 | 빠른등록(단어만) / 상세등록(단어+설명) → Gemini AI 자동 콘텐츠 생성 (responseSchema), 관리자 승인 워크플로우, 승인 후 3일 신규 플래그 유지, cron 스케줄 | `docs/auto-fill/SPECS.md` |
 | F-012 Supertone TTS 테스트 관리 | 관리자에서 Supertone TTS를 직접 호출해 mp3 저장, 재생, 다운로드, 최근 생성 결과 확인 | `docs/supertone-tts/SPECS.md` |
-| F-013 SEO 블로그 & 공개 슬랭 허브 | 관리자 블로그 글 작성/자동 임시저장/발행 + 카테고리/태그 + AI 한국어 초안/영문 번역 + 공개 `/blog`(목차/heading anchor), `/korean-slang` 허브 + CTA 클릭 추적/집계 대시보드 + 슬랭 FAQ AI 생성 + sitemap/schema 연동 | `docs/blog-seo/SPECS.md` |
+| F-013 SEO 블로그 & 공개 슬랭 허브 | 관리자 블로그 글 작성/자동 임시저장/발행 + 카테고리/태그 + AI 한국어 초안/영문 번역 + 공개 `/blog`(목차/heading anchor), `/korean-slang` 허브 + CTA 클릭 추적/집계 대시보드 + sitemap/schema 연동 | `docs/blog-seo/SPECS.md` |

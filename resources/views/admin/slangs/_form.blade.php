@@ -440,43 +440,6 @@
     </div>
 </div>
 
-@if ($isEdit)
-    <div class="mt-6">
-        <x-common.card title="FAQ (공개 슬랭 상세)">
-            <div class="flex items-center justify-between mb-4">
-                <p class="text-sm text-gray-500">
-                    공개 슬랭 상세 페이지에 표시될 FAQ입니다. AI가 생성하면 즉시 저장됩니다.
-                </p>
-                <button
-                    type="button"
-                    id="btn-generate-faq"
-                    class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 active:scale-[0.97]"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    <span id="btn-generate-faq-text">FAQ AI 생성</span>
-                </button>
-            </div>
-
-            <div id="faq-container">
-                @if (!empty($slang->faq_items))
-                    @foreach ($slang->faq_items as $index => $faqItem)
-                        <div class="rounded-xl border border-gray-200 p-4 mb-3">
-                            <p class="text-sm font-semibold text-gray-900">Q. {{ $faqItem['question'] ?? '' }}</p>
-                            <p class="mt-2 text-sm leading-6 text-gray-600">{{ $faqItem['answer'] ?? '' }}</p>
-                        </div>
-                    @endforeach
-                @else
-                    <div class="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-400" id="faq-empty">
-                        아직 생성된 FAQ가 없습니다. 위 버튼을 눌러 AI로 생성해주세요.
-                    </div>
-                @endif
-            </div>
-        </x-common.card>
-    </div>
-@endif
-
 {{-- 하단 버튼 --}}
 <div class="mt-6 flex items-center justify-end gap-3">
     <a href="{{ route('admin.slangs.index') }}">

@@ -118,38 +118,6 @@ it('does not render actual usage context on public slang detail page', function 
         ->assertSee('Read full context in App');
 });
 
-it('shows ai generated faq items on slang detail page when available', function () {
-    $faqItems = [
-        ['question' => 'What does 억까 mean literally?', 'answer' => 'It roughly translates to unfair criticism or nitpicking.'],
-        ['question' => 'Is 억까 offensive?', 'answer' => 'It is mild slang and generally not considered offensive.'],
-    ];
-
-    $slang = publicSlangEntry([
-        'faq_items' => $faqItems,
-    ]);
-
-    $response = $this->get(route('slangs.public.show', ['slang' => $slang->public_slug]));
-
-    $response
-        ->assertSuccessful()
-        ->assertSee('What does 억까 mean literally?')
-        ->assertSee('It roughly translates to unfair criticism or nitpicking.')
-        ->assertSee('Is 억까 offensive?')
-        ->assertSee('"@type": "FAQPage"', false);
-});
-
-it('hides faq section when faq_items is null', function () {
-    $slang = publicSlangEntry([
-        'faq_items' => null,
-    ]);
-
-    $response = $this->get(route('slangs.public.show', ['slang' => $slang->public_slug]));
-
-    $response
-        ->assertSuccessful()
-        ->assertDontSee('"@type": "FAQPage"', false);
-});
-
 it('shows public slang entries on the dictionary index and hides non-public entries', function () {
     publicSlangEntry([
         'public_slug' => 'eok-kka',
